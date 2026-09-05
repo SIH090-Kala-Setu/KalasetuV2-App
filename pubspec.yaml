@@ -39,6 +39,7 @@ dependencies:
   cupertino_icons: ^1.0.8
 
   # Media
+  camera: ^0.11.0+2
   image_picker: ^1.1.2
   record: ^6.2.1
   just_audio: ^0.9.40

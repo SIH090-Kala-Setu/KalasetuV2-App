@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -24,7 +25,10 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
   final _picker = ImagePicker();
   late final AudioRecorder _audioRecorder;
 
-  // Step 1: Camera & Image state
+  // Step 1: In-app Camera & Image state
+  List<CameraDescription> _cameras = [];
+  CameraController? _cameraController;
+  bool _isCameraReady = false;
   Uint8List? _capturedImageBytes;
   Uint8List? _enhancedImageBytes;
   bool _showEnhanced = true;
@@ -64,10 +68,12 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
   void initState() {
     super.initState();
     _audioRecorder = AudioRecorder();
+    _initInAppCamera();
   }
 
   @override
   void dispose() {
+    _cameraController?.dispose();
     _audioRecorder.dispose();
     _manualDescCtrl.dispose();
     _materialCostCtrl.dispose();
@@ -152,31 +158,49 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
         ? _enhancedImageBytes
         : _capturedImageBytes;
 
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'AI Camera Studio',
-            style: TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.w800,
-              color: AppColors.primary,
-              letterSpacing: -0.5,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'AI Camera Studio',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    'AI studio lighting & background enhancement',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF8A94A6)),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Capture your craft with AI studio lighting & background enhancement',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF8A94A6)),
-          ),
-          const SizedBox(height: 20),
+            if (_capturedImageBytes == null)
+              TextButton.icon(
+                onPressed: () => setState(() => _step = 2),
+                icon: const Icon(Icons.fast_forward_rounded, size: 16, color: AppColors.primary),
+                label: const Text('Skip', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 13)),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
 
-          // Dark Navy Camera Viewport Container
-          Container(
+        // Dark Navy Camera Viewport Container - Expanded to full available screen space
+        Expanded(
+          child: Container(
             width: double.infinity,
-            height: 380,
             decoration: BoxDecoration(
               color: AppColors.primary,
               borderRadius: BorderRadius.circular(24),
@@ -188,204 +212,260 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                 ),
               ],
             ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Captured or enhanced image preview
-                if (displayBytes != null)
-                  Positioned.fill(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(24),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // 1. Captured or enhanced image preview
+                  if (displayBytes != null)
+                    Positioned.fill(
                       child: Image.memory(displayBytes, fit: BoxFit.cover),
                     ),
-                  ),
 
-                // Dashed Viewfinder Frame
-                if (displayBytes == null)
-                  const Positioned.fill(
-                    child: Padding(
-                      padding: EdgeInsets.all(28),
-                      child: CustomPaint(
-                        painter: _DashedRectPainter(color: Colors.white38),
-                        child: Center(
-                          child: Icon(
-                            Icons.camera_alt_outlined,
-                            size: 52,
-                            color: Colors.white54,
-                          ),
+                  // 2. Live in-app camera viewfinder preview
+                  if (displayBytes == null &&
+                      _isCameraReady &&
+                      _cameraController != null &&
+                      _cameraController!.value.isInitialized)
+                    Positioned.fill(
+                      child: FittedBox(
+                        fit: BoxFit.cover,
+                        child: SizedBox(
+                          width: _cameraController!.value.previewSize?.height ?? 1,
+                          height: _cameraController!.value.previewSize?.width ?? 1,
+                          child: CameraPreview(_cameraController!),
                         ),
                       ),
                     ),
-                  ),
 
-                // Enhancing loading indicator overlay
-                if (_isEnhancing)
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.6),
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: const Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          CircularProgressIndicator(color: AppColors.accent),
-                          SizedBox(height: 12),
-                          Text(
-                            'AI Studio Enhancement in progress...',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                  // 3. Fallback Viewfinder when camera hardware is not available (e.g. simulator)
+                  if (displayBytes == null &&
+                      (!_isCameraReady ||
+                          _cameraController == null ||
+                          !_cameraController!.value.isInitialized))
+                    const Positioned.fill(
+                      child: Padding(
+                        padding: EdgeInsets.all(24),
+                        child: CustomPaint(
+                          painter: _DashedRectPainter(color: Colors.white38),
+                          child: Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.camera_alt_outlined,
+                                  size: 52,
+                                  color: Colors.white54,
+                                ),
+                                SizedBox(height: 10),
+                                Text(
+                                  'Center craft within frame',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                // Top Flash & Flip Camera Icons
-                Positioned(
-                  top: 18,
-                  right: 18,
-                  child: Row(
-                    children: [
-                      _buildSquircleIconButton(
-                        icon: _isFlashOn ? Icons.flash_on_rounded : Icons.flash_off_rounded,
-                        bgColor: _isFlashOn ? const Color(0xFFF5A623) : Colors.white.withValues(alpha: 0.2),
-                        iconColor: _isFlashOn ? AppColors.primary : Colors.white,
-                        onTap: () => setState(() => _isFlashOn = !_isFlashOn),
-                      ),
-                      const SizedBox(width: 10),
-                      _buildSquircleIconButton(
-                        icon: Icons.flip_camera_ios_outlined,
-                        bgColor: Colors.white.withValues(alpha: 0.15),
-                        iconColor: Colors.white,
-                        onTap: () => setState(() => _isFrontCamera = !_isFrontCamera),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Gallery Picker at bottom left
-                Positioned(
-                  bottom: 24,
-                  left: 24,
-                  child: _buildSquircleIconButton(
-                    icon: Icons.photo_library_outlined,
-                    bgColor: Colors.white.withValues(alpha: 0.2),
-                    iconColor: Colors.white,
-                    onTap: _pickFromGallery,
-                  ),
-                ),
-
-                // Big Shutter Button at bottom center
-                Positioned(
-                  bottom: 18,
-                  child: GestureDetector(
-                    onTap: _takePhoto,
-                    child: Container(
-                      width: 72,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 4),
-                      ),
-                      child: Center(
-                        child: Container(
-                          width: 54,
-                          height: 54,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Color(0xFF334155),
-                          ),
-                          child: const Icon(Icons.camera_alt, color: Colors.white, size: 28),
                         ),
                       ),
                     ),
-                  ),
-                ),
 
-                // Enhancement toggle button if enhanced image exists
-                if (_enhancedImageBytes != null)
-                  Positioned(
-                    top: 18,
-                    left: 18,
-                    child: GestureDetector(
-                      onTap: () => setState(() => _showEnhanced = !_showEnhanced),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: _showEnhanced ? AppColors.accent : Colors.black54,
-                          borderRadius: BorderRadius.circular(20),
+                  // 4. Viewfinder Framing guide overlay on live camera
+                  if (displayBytes == null &&
+                      _isCameraReady &&
+                      _cameraController != null &&
+                      _cameraController!.value.isInitialized)
+                    const Positioned.fill(
+                      child: Padding(
+                        padding: EdgeInsets.all(24),
+                        child: CustomPaint(
+                          painter: _DashedRectPainter(color: Colors.white38),
                         ),
-                        child: Row(
+                      ),
+                    ),
+
+                  // Enhancing loading indicator overlay
+                  if (_isEnhancing)
+                    Container(
+                      color: Colors.black.withValues(alpha: 0.65),
+                      child: const Center(
+                        child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
-                              _showEnhanced ? Icons.auto_awesome : Icons.image_outlined,
-                              size: 14,
-                              color: _showEnhanced ? AppColors.primary : Colors.white,
-                            ),
-                            const SizedBox(width: 6),
+                            CircularProgressIndicator(color: AppColors.accent),
+                            SizedBox(height: 14),
                             Text(
-                              _showEnhanced ? '✨ AI Enhanced' : 'Original',
+                              'AI Studio Enhancement in progress...',
                               style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: _showEnhanced ? AppColors.primary : Colors.white,
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
                         ),
                       ),
                     ),
+
+                  // Top Flash & Flip Camera Icons
+                  Positioned(
+                    top: 18,
+                    right: 18,
+                    child: Row(
+                      children: [
+                        _buildSquircleIconButton(
+                          icon: _isFlashOn ? Icons.flash_on_rounded : Icons.flash_off_rounded,
+                          bgColor: _isFlashOn ? const Color(0xFFF5A623) : Colors.white.withValues(alpha: 0.2),
+                          iconColor: _isFlashOn ? AppColors.primary : Colors.white,
+                          onTap: _toggleFlash,
+                        ),
+                        const SizedBox(width: 10),
+                        _buildSquircleIconButton(
+                          icon: Icons.flip_camera_ios_outlined,
+                          bgColor: Colors.white.withValues(alpha: 0.15),
+                          iconColor: Colors.white,
+                          onTap: _flipCamera,
+                        ),
+                      ],
+                    ),
                   ),
-              ],
+
+                  // Enhancement toggle button if enhanced image exists
+                  if (_enhancedImageBytes != null)
+                    Positioned(
+                      top: 18,
+                      left: 18,
+                      child: GestureDetector(
+                        onTap: () => setState(() => _showEnhanced = !_showEnhanced),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: _showEnhanced ? AppColors.accent : Colors.black54,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                _showEnhanced ? Icons.auto_awesome : Icons.image_outlined,
+                                size: 14,
+                                color: _showEnhanced ? AppColors.primary : Colors.white,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                _showEnhanced ? '✨ AI Enhanced' : 'Original',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: _showEnhanced ? AppColors.primary : Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  // Gallery Picker at bottom left
+                  Positioned(
+                    bottom: 24,
+                    left: 24,
+                    child: _buildSquircleIconButton(
+                      icon: Icons.photo_library_outlined,
+                      bgColor: Colors.white.withValues(alpha: 0.2),
+                      iconColor: Colors.white,
+                      onTap: _pickFromGallery,
+                    ),
+                  ),
+
+                  // Big Shutter Button at bottom center
+                  Positioned(
+                    bottom: 18,
+                    child: GestureDetector(
+                      onTap: _takePhoto,
+                      child: Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 4),
+                        ),
+                        child: Center(
+                          child: Container(
+                            width: 54,
+                            height: 54,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Color(0xFF334155),
+                            ),
+                            child: const Icon(Icons.camera_alt, color: Colors.white, size: 28),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Retake / Reset at bottom right when image is captured
+                  if (_capturedImageBytes != null)
+                    Positioned(
+                      bottom: 24,
+                      right: 24,
+                      child: _buildSquircleIconButton(
+                        icon: Icons.refresh_rounded,
+                        bgColor: Colors.white.withValues(alpha: 0.2),
+                        iconColor: Colors.white,
+                        onTap: () {
+                          setState(() {
+                            _capturedImageBytes = null;
+                            _enhancedImageBytes = null;
+                            _showEnhanced = false;
+                          });
+                        },
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 16),
+        ),
 
-          // Helper text / Next Step Button
-          if (_capturedImageBytes != null) ...[
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton.icon(
-                onPressed: () => setState(() => _step = 2),
-                icon: const Icon(Icons.arrow_forward_rounded, size: 20),
-                label: const Text('Continue to Voice-to-Catalog', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.accent,
-                  foregroundColor: AppColors.primary,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                ),
+        // Bottom Action Row
+        if (_capturedImageBytes != null) ...[
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton.icon(
+              onPressed: () => setState(() => _step = 2),
+              icon: const Icon(Icons.arrow_forward_rounded, size: 20),
+              label: const Text('Continue to Voice-to-Catalog', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.accent,
+                foregroundColor: AppColors.primary,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
             ),
-          ] else ...[
-            const Center(
-              child: Text(
-                'Center your craft within the frame or pick from gallery',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF8A94A6),
-                ),
+          ),
+        ] else ...[
+          const SizedBox(height: 8),
+          const Center(
+            child: Text(
+              'Tap shutter to capture or pick craft photo from gallery',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF8A94A6),
               ),
             ),
-            const SizedBox(height: 14),
-            Center(
-              child: TextButton.icon(
-                onPressed: () => setState(() => _step = 2),
-                icon: const Icon(Icons.fast_forward_rounded, size: 16, color: AppColors.primary),
-                label: const Text('Skip photo for now', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
-              ),
-            ),
-          ],
-          const SizedBox(height: 20),
+          ),
         ],
-      ),
+        const SizedBox(height: 8),
+      ],
     );
   }
 
@@ -1038,23 +1118,88 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
 
   // ── Action Handlers ──────────────────────────────────────────────
 
-  Future<void> _takePhoto() async {
+  Future<void> _initInAppCamera() async {
     try {
-      final img = await _picker.pickImage(source: ImageSource.camera, maxWidth: 1280, maxHeight: 1280);
-      if (img != null) {
-        final bytes = await img.readAsBytes();
+      _cameras = await availableCameras();
+      if (_cameras.isNotEmpty) {
+        final backCam = _cameras.firstWhere(
+          (c) => c.lensDirection == CameraLensDirection.back,
+          orElse: () => _cameras.first,
+        );
+        await _setupCameraController(backCam);
+      }
+    } catch (_) {
+      // Fallback gracefully on devices/emulators without camera hardware
+    }
+  }
+
+  Future<void> _setupCameraController(CameraDescription camera) async {
+    final controller = CameraController(
+      camera,
+      ResolutionPreset.high,
+      enableAudio: false,
+    );
+    _cameraController = controller;
+    try {
+      await controller.initialize();
+      if (mounted) {
+        setState(() => _isCameraReady = true);
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isCameraReady = false);
+      }
+    }
+  }
+
+  Future<void> _toggleFlash() async {
+    if (_cameraController == null || !_cameraController!.value.isInitialized) {
+      setState(() => _isFlashOn = !_isFlashOn);
+      return;
+    }
+    try {
+      final newMode = _isFlashOn ? FlashMode.off : FlashMode.torch;
+      await _cameraController!.setFlashMode(newMode);
+      setState(() => _isFlashOn = !_isFlashOn);
+    } catch (_) {
+      setState(() => _isFlashOn = !_isFlashOn);
+    }
+  }
+
+  Future<void> _flipCamera() async {
+    if (_cameras.length < 2) return;
+    final currentDirection = _cameraController?.description.lensDirection;
+    final nextCamera = _cameras.firstWhere(
+      (c) => c.lensDirection != currentDirection,
+      orElse: () => _cameras.first,
+    );
+    setState(() {
+      _isCameraReady = false;
+      _isFrontCamera = nextCamera.lensDirection == CameraLensDirection.front;
+    });
+    await _cameraController?.dispose();
+    await _setupCameraController(nextCamera);
+  }
+
+  Future<void> _takePhoto() async {
+    // 1. In-app camera capture (does not leave the screen)
+    if (_cameraController != null && _cameraController!.value.isInitialized) {
+      try {
+        final xfile = await _cameraController!.takePicture();
+        final bytes = await xfile.readAsBytes();
         setState(() {
           _capturedImageBytes = bytes;
           _enhancedImageBytes = null;
         });
         _enhanceImageAsync(bytes);
-      } else if (_capturedImageBytes == null) {
-        // Fallback for emulator / environments without physical camera: pick from gallery
-        _pickFromGallery();
+        return;
+      } catch (_) {
+        // Fallback to gallery if takePicture fails
       }
-    } catch (_) {
-      _pickFromGallery();
     }
+
+    // 2. Fallback if camera hardware is unavailable
+    _pickFromGallery();
   }
 
   Future<void> _pickFromGallery() async {
