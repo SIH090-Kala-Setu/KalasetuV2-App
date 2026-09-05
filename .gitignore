@@ -43,3 +43,29 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+.env
+backend/
+frontend/
+frontend/node_modules/
+node_modules/
+
+firebase-credentials.json
+
+# Flutter Android specific
+android/gradle-wrapper.jar
+android/.gradle
+android/captures/
+android/gradlew
+android/gradlew.bat
+android/local.properties
+android/GeneratedPluginRegistrant.java
+android/.cxx/
+
+# Remember to never publicly share your keystore.
+# See https://flutter.dev/to/reference-keystore
+android/key.properties
+android/**/*.keystore
+android/**/*.jks
+
+backend/.venv/
