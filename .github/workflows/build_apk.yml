@@ -41,11 +41,11 @@ jobs:
             echo "⚠️ Using fallback google-services.json structure for CI build."
           fi
 
-      - name: Build Android Release APK
-        run: flutter build apk --release --no-tree-shake-icons --android-skip-build-dependency-validation
+      - name: Build Android Release APK (ARM64 only)
+        run: flutter build apk --target-platform android-arm64 --split-per-abi --release --no-tree-shake-icons --android-skip-build-dependency-validation
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: kalasetu-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: kalasetu-arm64-release-apk
+          path: build/app/outputs/flutter-apk/*.apk
