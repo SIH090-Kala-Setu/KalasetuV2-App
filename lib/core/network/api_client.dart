@@ -117,12 +117,13 @@ class ApiClient {
     return ProductCatalogGenerated.fromJson(response.data as Map<String, dynamic>);
   }
 
-  Future<ProductCatalogGenerated> generateCatalogFromImage(Uint8List bytes) async {
+  Future<ProductCatalogGenerated> generateCatalogFromImage(Uint8List bytes, {String lang = 'Hindi'}) async {
     try {
       final response = await _dio.post(
         ApiEndpoints.catalogVision,
         data: FormData.fromMap({
           'image': MultipartFile.fromBytes(bytes, filename: 'product.jpg'),
+          'lang': lang,
         }),
       );
       return ProductCatalogGenerated.fromJson(response.data as Map<String, dynamic>);
@@ -130,7 +131,7 @@ class ApiClient {
       // Graceful fallback to voice/text catalog generator if vision endpoint is not present
       return generateCatalog(
         textDesc: 'Handcrafted traditional Indian artisan product made with authentic cultural craftsmanship',
-        lang: 'Hindi',
+        lang: lang,
       );
     }
   }

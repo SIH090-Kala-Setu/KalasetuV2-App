@@ -224,8 +224,11 @@ class ProductCatalogGenerated {
   final String descriptionEn;
   final String descriptionHi;
   final String category;
+  final String? story;
   final List<String> tags;
   final List<String> materials;
+  final double? estimatedLaborHours;
+  final double? estimatedMaterialCost;
   final String? rawTranscript;
 
   const ProductCatalogGenerated({
@@ -234,8 +237,11 @@ class ProductCatalogGenerated {
     required this.descriptionEn,
     required this.descriptionHi,
     required this.category,
+    this.story,
     this.tags = const [],
     this.materials = const [],
+    this.estimatedLaborHours,
+    this.estimatedMaterialCost,
     this.rawTranscript,
   });
 
@@ -245,10 +251,17 @@ class ProductCatalogGenerated {
         titleHi: (json['title_hi'] ?? json['titleHi'] ?? '').toString(),
         descriptionEn: (json['description_en'] ?? json['descriptionEn'] ?? '').toString(),
         descriptionHi: (json['description_hi'] ?? json['descriptionHi'] ?? '').toString(),
-        category: (json['category'] ?? 'General').toString(),
+        category: (json['category'] ?? 'Handicrafts').toString(),
+        story: json['story'] as String?,
         tags: List<String>.from(json['tags'] as List? ?? []),
         materials: List<String>.from(json['materials'] as List? ?? []),
-        rawTranscript: json['raw_transcript'] as String? ?? json['transcript'] as String?,
+        estimatedLaborHours: (json['estimated_labor_hours'] as num?)?.toDouble() ??
+            (json['estimatedLaborHours'] as num?)?.toDouble(),
+        estimatedMaterialCost: (json['estimated_material_cost'] as num?)?.toDouble() ??
+            (json['estimatedMaterialCost'] as num?)?.toDouble(),
+        rawTranscript: json['raw_transcription'] as String? ??
+            json['raw_transcript'] as String? ??
+            json['transcript'] as String?,
       );
 }
 

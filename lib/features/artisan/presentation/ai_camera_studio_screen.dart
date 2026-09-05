@@ -34,13 +34,22 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
   bool _showEnhanced = true;
   bool _isEnhancing = false;
   bool _isFlashOn = false;
-  bool _isFrontCamera = false;
 
-  // Step 2: Voice & Catalog state
+  // Step 2: Voice & Catalog state & Editable Controllers
   bool _isRecording = false;
   bool _recordingComplete = false;
   bool _isCataloging = false;
+  bool _hasVisionCatalogRun = false;
   final _manualDescCtrl = TextEditingController();
+
+  late final TextEditingController _titleEnCtrl;
+  late final TextEditingController _titleHiCtrl;
+  late final TextEditingController _descEnCtrl;
+  late final TextEditingController _descHiCtrl;
+  late final TextEditingController _storyCtrl;
+  late final TextEditingController _categoryCtrl;
+  late final TextEditingController _materialsCtrl;
+  late final TextEditingController _tagsCtrl;
 
   String _titleEn = 'Handwoven Varanasi Pure Silk Dupatta with Zari Border';
   String _titleHi = 'हथकरघा बनारसी सिल्क दुपट्टा (ज़री बॉर्डर)';
@@ -48,6 +57,8 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
       'Master weaver Ramesh Sharma uses pure mulberry silk and real zari on a traditional pit loom. Natural dyes from indigo and madder roots. GI tag certified.';
   String _descriptionHi =
       'मास्टर बुनकर रमेश शर्मा पारंपरिक गड्ढा करघे पर शुद्ध शहतूत रेशम और असली जरी का उपयोग करते हैं।';
+  String _story =
+      'Centuries of Banarasi pit-loom weaving tradition preserved across four generations of master artisans in Varanasi.';
   String _category = 'Handloom';
   List<String> _materials = ['Pure Mulberry Silk', 'Real Zari Thread', 'Natural Dyes'];
   List<String> _tags = ['Handloom', 'Pure Silk', 'GI Tag', 'Banarasi', 'Zari Border'];
@@ -67,6 +78,15 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
   @override
   void initState() {
     super.initState();
+    _titleEnCtrl = TextEditingController(text: _titleEn);
+    _titleHiCtrl = TextEditingController(text: _titleHi);
+    _descEnCtrl = TextEditingController(text: _descriptionEn);
+    _descHiCtrl = TextEditingController(text: _descriptionHi);
+    _storyCtrl = TextEditingController(text: _story);
+    _categoryCtrl = TextEditingController(text: _category);
+    _materialsCtrl = TextEditingController(text: _materials.join(', '));
+    _tagsCtrl = TextEditingController(text: _tags.join(', '));
+
     _audioRecorder = AudioRecorder();
     _initInAppCamera();
   }
@@ -78,6 +98,14 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
     _manualDescCtrl.dispose();
     _materialCostCtrl.dispose();
     _laborHoursCtrl.dispose();
+    _titleEnCtrl.dispose();
+    _titleHiCtrl.dispose();
+    _descEnCtrl.dispose();
+    _descHiCtrl.dispose();
+    _storyCtrl.dispose();
+    _categoryCtrl.dispose();
+    _materialsCtrl.dispose();
+    _tagsCtrl.dispose();
     super.dispose();
   }
 
@@ -189,7 +217,7 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
             ),
             if (_capturedImageBytes == null)
               TextButton.icon(
-                onPressed: () => setState(() => _step = 2),
+                onPressed: _goToVoiceStep,
                 icon: const Icon(Icons.fast_forward_rounded, size: 16, color: AppColors.primary),
                 label: const Text('Skip', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 13)),
               ),
@@ -197,16 +225,19 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
         ),
         const SizedBox(height: 12),
 
-        // Dark Navy Camera Viewport Container - Expanded to full available screen space
+        // Camera Viewport Container - Expanded to full available screen space
         Expanded(
           child: Container(
             width: double.infinity,
             decoration: BoxDecoration(
-              color: AppColors.primary,
+              color: displayBytes != null ? Colors.white : AppColors.primary,
               borderRadius: BorderRadius.circular(24),
+              border: displayBytes != null ? Border.all(color: const Color(0xFFE2E8F0), width: 1.5) : null,
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.25),
+                  color: displayBytes != null
+                      ? Colors.black.withValues(alpha: 0.08)
+                      : AppColors.primary.withValues(alpha: 0.25),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),
@@ -217,10 +248,14 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // 1. Captured or enhanced image preview
+                  // 1. Captured or enhanced image preview on pure white studio canvas
                   if (displayBytes != null)
                     Positioned.fill(
-                      child: Image.memory(displayBytes, fit: BoxFit.cover),
+                      child: Container(
+                        color: Colors.white,
+                        padding: const EdgeInsets.all(12),
+                        child: Image.memory(displayBytes, fit: BoxFit.contain),
+                      ),
                     ),
 
                   // 2. Live in-app camera viewfinder preview
@@ -423,6 +458,7 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                             _capturedImageBytes = null;
                             _enhancedImageBytes = null;
                             _showEnhanced = false;
+                            _hasVisionCatalogRun = false;
                           });
                         },
                       ),
@@ -440,7 +476,7 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
             width: double.infinity,
             height: 50,
             child: ElevatedButton.icon(
-              onPressed: () => setState(() => _step = 2),
+              onPressed: _goToVoiceStep,
               icon: const Icon(Icons.arrow_forward_rounded, size: 20),
               label: const Text('Continue to Voice-to-Catalog', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
               style: ElevatedButton.styleFrom(
@@ -567,55 +603,77 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
           const SizedBox(height: 16),
 
           if (_isCataloging)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Column(
-                  children: [
-                    CircularProgressIndicator(color: AppColors.accent),
-                    SizedBox(height: 12),
-                    Text('Analyzing craft with Gemini & Multilingual AI...', style: TextStyle(fontWeight: FontWeight.w600)),
-                  ],
-                ),
-              ),
-            )
-          else ...[
-            // Transcript (Hindi) Card
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
+              margin: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: const Column(
                 children: [
-                  const Text(
-                    'Transcript (Hindi)',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF8A94A6),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
+                  CircularProgressIndicator(color: AppColors.accent),
+                  SizedBox(height: 16),
                   Text(
-                    _transcript,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      height: 1.4,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
-                    ),
+                    'Analyzing craft with Qwen 3.8 on Groq...',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.primary),
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    'Extracting heritage story, SEO tags, labor hours & pricing economics from your photo',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 12, color: Color(0xFF8A94A6)),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 14),
+            )
+          else ...[
+            // Transcript (Hindi) Card - if voice was recorded
+            if (_transcript.isNotEmpty && _recordingComplete) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.mic_rounded, size: 15, color: Color(0xFF15803D)),
+                        SizedBox(width: 6),
+                        Text(
+                          'Recorded Voice Note',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF15803D),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _transcript,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        height: 1.4,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+            ],
 
-            // AI Generated (English) Card
+            // AI Generated (English) Card - Editable
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
@@ -632,7 +690,7 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                       Icon(Icons.auto_awesome, size: 14, color: AppColors.primary),
                       SizedBox(width: 6),
                       Text(
-                        'AI Generated (English)',
+                        'English Listing (Editable)',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
@@ -641,23 +699,37 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _titleEn,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.primary,
+                  const SizedBox(height: 12),
+                  const Text('Product Title (English)',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                  const SizedBox(height: 4),
+                  TextField(
+                    controller: _titleEnCtrl,
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.primary),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    _descriptionEn,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      height: 1.4,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF64748B),
+                  const SizedBox(height: 10),
+                  const Text('Product Description (English)',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                  const SizedBox(height: 4),
+                  TextField(
+                    controller: _descEnCtrl,
+                    maxLines: 3,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF334155), height: 1.4),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
                     ),
                   ),
                 ],
@@ -665,7 +737,7 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
             ),
             const SizedBox(height: 14),
 
-            // AI Generated (Hindi) Card
+            // AI Generated (Hindi) Card - Editable
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
@@ -682,7 +754,7 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                       Icon(Icons.auto_awesome, size: 14, color: Color(0xFF92400E)),
                       SizedBox(width: 6),
                       Text(
-                        'AI Generated (Hindi)',
+                        'Hindi Listing - हिंदी विवरण (Editable)',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
@@ -691,37 +763,265 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    _titleHi,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF92400E),
+                  const SizedBox(height: 12),
+                  const Text('उत्पाद शीर्षक (Title in Hindi)',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF92400E))),
+                  const SizedBox(height: 4),
+                  TextField(
+                    controller: _titleHiCtrl,
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF92400E)),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFFDE68A))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFFDE68A))),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF92400E), width: 1.5)),
                     ),
                   ),
+                  const SizedBox(height: 10),
+                  const Text('उत्पाद का विवरण (Description in Hindi)',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF92400E))),
                   const SizedBox(height: 4),
-                  Text(
-                    _descriptionHi,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF92400E),
+                  TextField(
+                    controller: _descHiCtrl,
+                    maxLines: 3,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF92400E), height: 1.4),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFFDE68A))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFFDE68A))),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF92400E), width: 1.5)),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
 
-            // Chips Row
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _StudioChip(label: _category),
-                ..._materials.map((m) => _StudioChip(label: m)),
-                ..._tags.map((t) => _StudioChip(label: t)),
-              ],
+            // Artisan Heritage & Craft Story Card - Editable
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.history_edu_rounded, size: 16, color: AppColors.primary),
+                      SizedBox(width: 6),
+                      Text(
+                        'Artisan Heritage Story (Editable)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _storyCtrl,
+                    maxLines: 3,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF334155), height: 1.4),
+                    decoration: InputDecoration(
+                      hintText: 'Generational story and traditional craft heritage...',
+                      hintStyle: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Category, Materials & SEO Tags Card - Editable
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.sell_outlined, size: 14, color: AppColors.primary),
+                      SizedBox(width: 6),
+                      Text(
+                        'Category, Materials & SEO Tags',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Category',
+                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                            const SizedBox(height: 4),
+                            TextField(
+                              controller: _categoryCtrl,
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary),
+                              decoration: InputDecoration(
+                                filled: true,
+                                fillColor: const Color(0xFFF8FAFC),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Raw Materials',
+                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                            const SizedBox(height: 4),
+                            TextField(
+                              controller: _materialsCtrl,
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary),
+                              decoration: InputDecoration(
+                                filled: true,
+                                fillColor: const Color(0xFFF8FAFC),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Text('SEO Tags (Comma Separated)',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                  const SizedBox(height: 4),
+                  TextField(
+                    controller: _tagsCtrl,
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary),
+                    decoration: InputDecoration(
+                      hintText: 'e.g. Handloom, Pure Silk, GI Tag, Banarasi',
+                      hintStyle: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // AI Economics (Labor Hours & Material Cost) Card - Editable
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.monetization_on_outlined, size: 14, color: AppColors.primary),
+                      SizedBox(width: 6),
+                      Text(
+                        'Estimated Labor & Material Cost (AI Auto-filled)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Labor Hours',
+                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                            const SizedBox(height: 4),
+                            TextField(
+                              controller: _laborHoursCtrl,
+                              keyboardType: TextInputType.number,
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary),
+                              decoration: InputDecoration(
+                                filled: true,
+                                fillColor: const Color(0xFFF8FAFC),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Material Cost (₹)',
+                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                            const SizedBox(height: 4),
+                            TextField(
+                              controller: _materialCostCtrl,
+                              keyboardType: TextInputType.number,
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary),
+                              decoration: InputDecoration(
+                                filled: true,
+                                fillColor: const Color(0xFFF8FAFC),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
           const SizedBox(height: 24),
@@ -1175,7 +1475,6 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
     );
     setState(() {
       _isCameraReady = false;
-      _isFrontCamera = nextCamera.lensDirection == CameraLensDirection.front;
     });
     await _cameraController?.dispose();
     await _setupCameraController(nextCamera);
@@ -1190,6 +1489,7 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
         setState(() {
           _capturedImageBytes = bytes;
           _enhancedImageBytes = null;
+          _hasVisionCatalogRun = false;
         });
         _enhanceImageAsync(bytes);
         return;
@@ -1210,6 +1510,7 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
         setState(() {
           _capturedImageBytes = bytes;
           _enhancedImageBytes = null;
+          _hasVisionCatalogRun = false;
         });
         _enhanceImageAsync(bytes);
       }
@@ -1226,11 +1527,43 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
           _enhancedImageBytes = enhanced;
           _showEnhanced = true;
         });
+        // Auto-trigger Groq Qwen 3.8 vision catalog on the studio enhanced image
+        _triggerAutoVisionCatalog(enhanced);
       }
     } catch (_) {
-      // Keep original image cleanly if offline
+      // Keep original image cleanly if offline, still trigger vision catalog on original
+      if (mounted) {
+        _triggerAutoVisionCatalog(bytes);
+      }
     } finally {
       if (mounted) setState(() => _isEnhancing = false);
+    }
+  }
+
+  void _goToVoiceStep() {
+    setState(() => _step = 2);
+    final imageBytes = _enhancedImageBytes ?? _capturedImageBytes;
+    if (!_hasVisionCatalogRun && imageBytes != null) {
+      _triggerAutoVisionCatalog(imageBytes);
+    }
+  }
+
+  Future<void> _triggerAutoVisionCatalog(Uint8List bytes) async {
+    if (_hasVisionCatalogRun) return;
+    _hasVisionCatalogRun = true;
+    setState(() => _isCataloging = true);
+    try {
+      final api = ref.read(apiClientProvider);
+      final catalog = await api.generateCatalogFromImage(bytes, lang: 'Hindi');
+      if (mounted) {
+        _applyCatalog(catalog);
+      }
+    } catch (_) {
+      // Keep fallback defaults if network is offline
+    } finally {
+      if (mounted) {
+        setState(() => _isCataloging = false);
+      }
     }
   }
 
@@ -1300,13 +1633,44 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
 
   void _applyCatalog(ProductCatalogGenerated catalog) {
     setState(() {
-      if (catalog.titleEn.isNotEmpty) _titleEn = catalog.titleEn;
-      if (catalog.titleHi.isNotEmpty) _titleHi = catalog.titleHi;
-      if (catalog.descriptionEn.isNotEmpty) _descriptionEn = catalog.descriptionEn;
-      if (catalog.descriptionHi.isNotEmpty) _descriptionHi = catalog.descriptionHi;
-      if (catalog.category.isNotEmpty) _category = catalog.category;
-      if (catalog.materials.isNotEmpty) _materials = catalog.materials;
-      if (catalog.tags.isNotEmpty) _tags = catalog.tags;
+      if (catalog.titleEn.isNotEmpty) {
+        _titleEn = catalog.titleEn;
+        _titleEnCtrl.text = catalog.titleEn;
+      }
+      if (catalog.titleHi.isNotEmpty) {
+        _titleHi = catalog.titleHi;
+        _titleHiCtrl.text = catalog.titleHi;
+      }
+      if (catalog.descriptionEn.isNotEmpty) {
+        _descriptionEn = catalog.descriptionEn;
+        _descEnCtrl.text = catalog.descriptionEn;
+      }
+      if (catalog.descriptionHi.isNotEmpty) {
+        _descriptionHi = catalog.descriptionHi;
+        _descHiCtrl.text = catalog.descriptionHi;
+      }
+      if (catalog.story != null && catalog.story!.isNotEmpty) {
+        _story = catalog.story!;
+        _storyCtrl.text = catalog.story!;
+      }
+      if (catalog.category.isNotEmpty) {
+        _category = catalog.category;
+        _categoryCtrl.text = catalog.category;
+      }
+      if (catalog.materials.isNotEmpty) {
+        _materials = catalog.materials;
+        _materialsCtrl.text = catalog.materials.join(', ');
+      }
+      if (catalog.tags.isNotEmpty) {
+        _tags = catalog.tags;
+        _tagsCtrl.text = catalog.tags.join(', ');
+      }
+      if (catalog.estimatedLaborHours != null && catalog.estimatedLaborHours! > 0) {
+        _laborHoursCtrl.text = catalog.estimatedLaborHours!.toStringAsFixed(0);
+      }
+      if (catalog.estimatedMaterialCost != null && catalog.estimatedMaterialCost! > 0) {
+        _materialCostCtrl.text = catalog.estimatedMaterialCost!.toStringAsFixed(0);
+      }
       if (catalog.rawTranscript != null && catalog.rawTranscript!.isNotEmpty) {
         _transcript = '"${catalog.rawTranscript}"';
       }
@@ -1318,15 +1682,19 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
     final matCost = double.tryParse(_materialCostCtrl.text) ?? 450.0;
     final hours = double.tryParse(_laborHoursCtrl.text) ?? 8.0;
 
+    final cat = _categoryCtrl.text.trim().isNotEmpty ? _categoryCtrl.text.trim() : _category;
+    final mats = _materialsCtrl.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    final tags = _tagsCtrl.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+
     try {
       final api = ref.read(apiClientProvider);
       final breakdown = await api.predictPrice(
-        craftCategory: _category,
+        craftCategory: cat,
         rawMaterialCost: matCost,
         laborHours: hours,
-        materialType: _materials.isNotEmpty ? _materials.first : 'Silk',
+        materialType: mats.isNotEmpty ? mats.first : 'Silk',
         regionState: 'Uttar Pradesh',
-        giTag: _tags.any((t) => t.toLowerCase().contains('gi')),
+        giTag: tags.any((t) => t.toLowerCase().contains('gi')),
       );
 
       if (mounted) {
@@ -1353,16 +1721,24 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
   Future<void> _publishListing() async {
     setState(() => _isPublishing = true);
 
+    final titleEn = _titleEnCtrl.text.trim().isNotEmpty ? _titleEnCtrl.text.trim() : _titleEn;
+    final titleHi = _titleHiCtrl.text.trim().isNotEmpty ? _titleHiCtrl.text.trim() : _titleHi;
+    final descEn = _descEnCtrl.text.trim().isNotEmpty ? _descEnCtrl.text.trim() : _descriptionEn;
+    final descHi = _descHiCtrl.text.trim().isNotEmpty ? _descHiCtrl.text.trim() : _descriptionHi;
+    final cat = _categoryCtrl.text.trim().isNotEmpty ? _categoryCtrl.text.trim() : _category;
+    final mats = _materialsCtrl.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    final tags = _tagsCtrl.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+
     try {
       final api = ref.read(apiClientProvider);
       await api.createProduct(
-        titleEn: _titleEn,
-        titleHi: _titleHi,
-        descriptionEn: _descriptionEn,
-        descriptionHi: _descriptionHi,
-        category: _category,
-        materials: _materials,
-        tags: _tags,
+        titleEn: titleEn,
+        titleHi: titleHi,
+        descriptionEn: descEn,
+        descriptionHi: descHi,
+        category: cat,
+        materials: mats.isNotEmpty ? mats : _materials,
+        tags: tags.isNotEmpty ? tags : _tags,
         retailPrice: _currentPrice,
         b2bPrice: _currentPrice * 0.75,
         stock: 10,
@@ -1395,29 +1771,6 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
   }
 }
 
-class _StudioChip extends StatelessWidget {
-  final String label;
-  const _StudioChip({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: AppColors.primary,
-        ),
-      ),
-    );
-  }
-}
 
 class _DashedRectPainter extends CustomPainter {
   final Color color;
