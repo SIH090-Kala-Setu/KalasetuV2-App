@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:camera/camera.dart';
@@ -8,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/services/draft_storage_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/models/models.dart';
 import 'artisan_catalogue_screen.dart';
@@ -89,6 +91,10 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
 
     _audioRecorder = AudioRecorder();
     _initInAppCamera();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkForSavedDraft();
+    });
   }
 
   @override
@@ -111,30 +117,30 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.lightBackground,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 12),
-              // Top Bar: 'X' + Progress bar + Step counter
-              Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded, color: AppColors.primary, size: 24),
-                    onPressed: () {
-                      if (_step > 1) {
-                        setState(() => _step--);
-                      } else {
-                        context.pop();
-                      }
-                    },
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        await _handleStudioBack();
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.lightBackground,
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 12),
+                // Top Bar: 'X' + Progress bar + Step counter
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, color: AppColors.primary, size: 24),
+                      onPressed: _handleStudioBack,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Row(
@@ -176,6 +182,7 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
             ],
           ),
         ),
+      ),
       ),
     );
   }
@@ -1032,6 +1039,7 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
             height: 54,
             child: ElevatedButton(
               onPressed: () {
+                _saveCurrentDraft();
                 setState(() => _step = 3);
                 _calculatePriceWithAi();
               },
@@ -1541,6 +1549,7 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
   }
 
   void _goToVoiceStep() {
+    _saveCurrentDraft();
     setState(() => _step = 2);
     final imageBytes = _enhancedImageBytes ?? _capturedImageBytes;
     if (!_hasVisionCatalogRun && imageBytes != null) {
@@ -1746,6 +1755,7 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
 
       ref.invalidate(artisanProductsProvider);
       ref.invalidate(marketplaceProductsProvider);
+      await ref.read(draftStorageServiceProvider).clearDraft();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1768,6 +1778,183 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
     } finally {
       if (mounted) setState(() => _isPublishing = false);
     }
+  }
+
+  // ── Draft Management & Back Handling ─────────────────────────────
+  Future<void> _saveCurrentDraft() async {
+    try {
+      final imageBytes = _enhancedImageBytes ?? _capturedImageBytes;
+      final draft = ProductDraft(
+        id: 'active_draft',
+        currentPhase: _step,
+        enhancedImageBase64: imageBytes != null ? base64Encode(imageBytes) : null,
+        titleEn: _titleEnCtrl.text.trim(),
+        titleHi: _titleHiCtrl.text.trim(),
+        descEn: _descEnCtrl.text.trim(),
+        descHi: _descHiCtrl.text.trim(),
+        story: _storyCtrl.text.trim(),
+        category: _categoryCtrl.text.trim(),
+        tags: _tagsCtrl.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(),
+        materials: _materialsCtrl.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(),
+        materialCost: double.tryParse(_materialCostCtrl.text.trim()),
+        laborHours: double.tryParse(_laborHoursCtrl.text.trim()),
+        retailPrice: _currentPrice,
+        b2bPrice: _currentPrice * 0.75,
+        lastSaved: DateTime.now(),
+      );
+      await ref.read(draftStorageServiceProvider).saveDraft(draft);
+    } catch (_) {}
+  }
+
+  Future<void> _handleStudioBack() async {
+    if (_step > 1) {
+      await _saveCurrentDraft();
+      if (mounted) {
+        setState(() => _step--);
+      }
+      return;
+    }
+
+    final hasWork = _capturedImageBytes != null ||
+        _titleEnCtrl.text.trim().isNotEmpty ||
+        _storyCtrl.text.trim().isNotEmpty ||
+        _manualDescCtrl.text.trim().isNotEmpty;
+
+    if (hasWork) {
+      await _saveCurrentDraft();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Draft saved. You can resume editing anytime.'),
+            duration: Duration(seconds: 2),
+            backgroundColor: AppColors.primary,
+          ),
+        );
+      }
+    }
+
+    if (mounted) {
+      context.pop();
+    }
+  }
+
+  Future<void> _checkForSavedDraft() async {
+    try {
+      final draft = await ref.read(draftStorageServiceProvider).loadDraft();
+      if (draft == null || !mounted) return;
+
+      final hasContent = draft.enhancedImageBase64 != null ||
+          (draft.titleEn != null && draft.titleEn!.isNotEmpty) ||
+          (draft.story != null && draft.story!.isNotEmpty);
+      if (!hasContent) return;
+
+      final draftTitle = (draft.titleEn != null && draft.titleEn!.isNotEmpty)
+          ? draft.titleEn!
+          : 'Craft Listing Draft';
+
+      final shouldResume = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.restore_page_rounded, color: Color(0xFFF5A623)),
+              SizedBox(width: 8),
+              Text('Resume Draft?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            ],
+          ),
+          content: Text(
+            'You have an unfinished craft draft for "$draftTitle". Would you like to resume editing where you left off?',
+            style: const TextStyle(fontSize: 14, color: Color(0xFF334155)),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Discard', style: TextStyle(color: Color(0xFFDC2626), fontWeight: FontWeight.w600)),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: const Text('Resume Draft', style: TextStyle(fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldResume == true && mounted) {
+        _restoreDraft(draft);
+      } else if (shouldResume == false) {
+        await ref.read(draftStorageServiceProvider).clearDraft();
+      }
+    } catch (_) {}
+  }
+
+  void _restoreDraft(ProductDraft draft) {
+    setState(() {
+      _step = draft.currentPhase.clamp(1, 3);
+      if (draft.enhancedBytes != null) {
+        _capturedImageBytes = draft.enhancedBytes;
+        _enhancedImageBytes = draft.enhancedBytes;
+        _showEnhanced = true;
+      }
+      if (draft.titleEn != null && draft.titleEn!.isNotEmpty) {
+        _titleEn = draft.titleEn!;
+        _titleEnCtrl.text = draft.titleEn!;
+      }
+      if (draft.titleHi != null && draft.titleHi!.isNotEmpty) {
+        _titleHi = draft.titleHi!;
+        _titleHiCtrl.text = draft.titleHi!;
+      }
+      if (draft.descEn != null && draft.descEn!.isNotEmpty) {
+        _descriptionEn = draft.descEn!;
+        _descEnCtrl.text = draft.descEn!;
+      }
+      if (draft.descHi != null && draft.descHi!.isNotEmpty) {
+        _descriptionHi = draft.descHi!;
+        _descHiCtrl.text = draft.descHi!;
+      }
+      if (draft.story != null && draft.story!.isNotEmpty) {
+        _story = draft.story!;
+        _storyCtrl.text = draft.story!;
+      }
+      if (draft.category != null && draft.category!.isNotEmpty) {
+        _category = draft.category!;
+        _categoryCtrl.text = draft.category!;
+      }
+      if (draft.materials.isNotEmpty) {
+        _materials = draft.materials;
+        _materialsCtrl.text = draft.materials.join(', ');
+      }
+      if (draft.tags.isNotEmpty) {
+        _tags = draft.tags;
+        _tagsCtrl.text = draft.tags.join(', ');
+      }
+      if (draft.materialCost != null) {
+        _materialCostCtrl.text = draft.materialCost!.toInt().toString();
+      }
+      if (draft.laborHours != null) {
+        _laborHoursCtrl.text = draft.laborHours!.toInt().toString();
+      }
+      if (draft.retailPrice != null) {
+        _currentPrice = draft.retailPrice!;
+        _breakevenPrice = (_currentPrice * 0.5).clamp(100, _currentPrice);
+        _premiumPrice = _currentPrice * 1.5;
+      }
+      _hasVisionCatalogRun = true;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Draft restored successfully.'),
+        duration: Duration(seconds: 2),
+        backgroundColor: Color(0xFF15803D),
+      ),
+    );
   }
 }
 

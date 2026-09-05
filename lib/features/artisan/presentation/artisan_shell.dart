@@ -9,9 +9,16 @@ class ArtisanShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      backgroundColor: AppColors.lightBackground,
-      body: navigationShell,
+    return PopScope(
+      canPop: navigationShell.currentIndex == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && navigationShell.currentIndex != 0) {
+          navigationShell.goBranch(0);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.lightBackground,
+        body: navigationShell,
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: Colors.white,
@@ -50,6 +57,7 @@ class ArtisanShell extends ConsumerWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

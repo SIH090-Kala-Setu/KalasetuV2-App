@@ -6,6 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/network/api_client.dart';
 import '../../../shared/models/models.dart';
 import '../../../shared/providers/auth_provider.dart';
+import '../../../shared/widgets/product_thumbnail.dart';
 
 final productDetailProvider = FutureProvider.autoDispose.family<ProductModel, String>((ref, id) async {
   final api = ref.read(apiClientProvider);
@@ -89,19 +90,12 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   // ── Full Hero Image ────────────────────────────────────
                   ClipRRect(
                     borderRadius: BorderRadius.circular(18),
-                    child: SizedBox(
+                    child: ProductThumbnail(
+                      imageUrl: imageUrl,
                       width: double.infinity,
                       height: 220,
-                      child: Image.network(
-                        imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          color: const Color(0xFFF1F5F9),
-                          child: const Center(
-                            child: Icon(Icons.broken_image_outlined, size: 48, color: Color(0xFF94A3B8)),
-                          ),
-                        ),
-                      ),
+                      fit: BoxFit.cover,
+                      borderRadius: BorderRadius.zero,
                     ),
                   ),
                   const SizedBox(height: 16),

@@ -6,6 +6,7 @@ import '../../../core/theme/app_colors.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../shared/models/models.dart';
+import '../../../shared/widgets/product_thumbnail.dart';
 
 final artisanProductsProvider = FutureProvider.autoDispose<List<ProductModel>>((ref) async {
   final api = ref.read(apiClientProvider);
@@ -273,19 +274,12 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
           // Image Header
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(19)),
-            child: SizedBox(
+            child: ProductThumbnail(
+              imageUrl: widget.imageUrl,
               width: double.infinity,
               height: 170,
-              child: Image.network(
-                widget.imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  color: const Color(0xFFF1F5F9),
-                  child: const Center(
-                    child: Icon(Icons.broken_image_outlined, size: 40, color: Color(0xFF94A3B8)),
-                  ),
-                ),
-              ),
+              fit: BoxFit.cover,
+              borderRadius: BorderRadius.zero,
             ),
           ),
 

@@ -14,15 +14,9 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _usernameCtrl = TextEditingController(text: '1234567890');
-  final _passwordCtrl = TextEditingController(text: '123456');
+  final _usernameCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-
-  static const _testCredentials = [
-    ('1234567890', '123456', 'Artisan', 'Artisan (1234567890)'),
-    ('1234', '123456', 'Aggregator', 'Aggregator (1234)'),
-    ('123', '123456', 'Buyer', 'Buyer (123)'),
-  ];
 
   @override
   void dispose() {
@@ -183,31 +177,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 20),
-                const Divider(color: Color(0xFFE2E8F0)),
-                const SizedBox(height: 16),
-
-                const Text(
-                  'Quick Login (Demo)',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
-                ),
-                const SizedBox(height: 10),
-
-                // Test Credential Cards
-                ..._testCredentials.map(
-                  (cred) => Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _TestCredentialCard(
-                      label: cred.$4,
-                      role: cred.$3,
-                      onTap: () {
-                        _usernameCtrl.text = cred.$1;
-                        _passwordCtrl.text = cred.$2;
-                        _login();
-                      },
-                    ),
-                  ),
-                ),
                 const SizedBox(height: 24),
               ],
             ),
@@ -260,67 +229,5 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         });
       }
     });
-  }
-}
-
-class _TestCredentialCard extends StatelessWidget {
-  final String label;
-  final String role;
-  final VoidCallback onTap;
-
-  const _TestCredentialCard({required this.label, required this.role, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = role == 'Artisan'
-        ? const Color(0xFFF5A623)
-        : role == 'Aggregator'
-            ? AppColors.primary
-            : const Color(0xFF10B981);
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(Icons.bolt_rounded, color: color, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
-                ),
-              ),
-            ),
-            const Text(
-              'Tap to login',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF8A94A6),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

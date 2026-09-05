@@ -13,37 +13,50 @@ class ApiEndpoints {
   static Future<String> resolveBaseUrl() async {
     // 1. Build-time env override
     const envUrl = String.fromEnvironment('BACKEND_URL');
-    if (envUrl.isNotEmpty) return _normalizeUrl(envUrl);
-
-    // 2. Runtime SharedPreferences override
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString(_kBackendUrlKey);
-    if (saved != null && saved.isNotEmpty) {
-      _cachedBaseUrl = _normalizeUrl(saved);
+    if (envUrl.isNotEmpty) {
+      _cachedBaseUrl = normalizeUrl(envUrl);
       return _cachedBaseUrl!;
     }
 
+    // 2. Runtime SharedPreferences override with reload
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.reload();
+      final saved = prefs.getString(_kBackendUrlKey);
+      if (saved != null && saved.trim().isNotEmpty) {
+        _cachedBaseUrl = normalizeUrl(saved);
+        return _cachedBaseUrl!;
+      }
+    } catch (_) {}
+
     // 3. Auto platform fallback
-    return _platformDefault();
+    _cachedBaseUrl = _platformDefault();
+    return _cachedBaseUrl!;
   }
 
   static String getBaseUrlSync() {
     if (_cachedBaseUrl != null) return _cachedBaseUrl!;
     const envUrl = String.fromEnvironment('BACKEND_URL');
-    if (envUrl.isNotEmpty) return _normalizeUrl(envUrl);
-    return _platformDefault();
+    if (envUrl.isNotEmpty) return normalizeUrl(envUrl);
+    _cachedBaseUrl = _platformDefault();
+    return _cachedBaseUrl!;
   }
 
   static Future<void> setCustomBaseUrl(String url) async {
-    _cachedBaseUrl = _normalizeUrl(url);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kBackendUrlKey, _cachedBaseUrl!);
+    _cachedBaseUrl = normalizeUrl(url);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_kBackendUrlKey, _cachedBaseUrl!);
+      await prefs.reload();
+    } catch (_) {}
   }
 
   static Future<void> clearCustomBaseUrl() async {
-    _cachedBaseUrl = null;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_kBackendUrlKey);
+    _cachedBaseUrl = _platformDefault();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_kBackendUrlKey);
+    } catch (_) {}
   }
 
   static String get currentBaseUrl => getBaseUrlSync();
@@ -55,7 +68,7 @@ class ApiEndpoints {
   }
 
   /// Auto-fixes Android localhost → 10.0.2.2 mapping and ensures http protocol
-  static String _normalizeUrl(String url) {
+  static String normalizeUrl(String url) {
     url = url.trim();
     if (url.isEmpty) return _platformDefault();
     if (!url.startsWith('http://') && !url.startsWith('https://')) {

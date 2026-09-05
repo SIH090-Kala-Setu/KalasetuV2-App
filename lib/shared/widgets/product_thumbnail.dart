@@ -1,9 +1,13 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import '../../../core/network/api_endpoints.dart';
 import '../../../core/theme/app_colors.dart';
 
-/// Hybrid image renderer: handles base64 Data URI bytes, remote URLs, and fallback
+/// Universal product image renderer:
+/// Handles base64 Data URIs (data:image/png;base64,...), raw base64 strings,
+/// relative URLs (/uploads/...), and remote HTTP/HTTPS URLs with shimmer & fallback.
 class ProductThumbnail extends StatelessWidget {
   final String? imageUrl;
   final Uint8List? imageBytes;
@@ -31,7 +35,8 @@ class ProductThumbnail extends StatelessWidget {
 
     Widget child;
 
-    if (imageBytes != null) {
+    // 1. Direct byte buffer
+    if (imageBytes != null && imageBytes!.isNotEmpty) {
       child = Image.memory(
         imageBytes!,
         width: width,
@@ -39,17 +44,79 @@ class ProductThumbnail extends StatelessWidget {
         fit: fit,
         errorBuilder: (_, __, ___) => _buildFallback(isDark),
       );
-    } else if (imageUrl != null && imageUrl!.isNotEmpty) {
-      child = CachedNetworkImage(
-        imageUrl: imageUrl!,
-        width: width,
-        height: height,
-        fit: fit,
-        placeholder: (context, url) => _buildShimmer(isDark),
-        errorWidget: (context, url, error) => _buildFallback(isDark),
-      );
+    }
+    // 2. Image URL (may be Data URI, raw Base64, relative, or HTTP/HTTPS)
+    else if (imageUrl != null && imageUrl!.trim().isNotEmpty) {
+      final raw = imageUrl!.trim();
+
+      // Case A: Data URI (e.g. data:image/png;base64,iVBOR...)
+      if (raw.startsWith('data:image/') || raw.contains(';base64,')) {
+        final commaIdx = raw.indexOf(',');
+        final b64 = commaIdx != -1 ? raw.substring(commaIdx + 1).trim() : raw;
+        try {
+          final decoded = base64Decode(b64);
+          child = Image.memory(
+            decoded,
+            width: width,
+            height: height,
+            fit: fit,
+            errorBuilder: (_, __, ___) => _buildFallback(isDark),
+          );
+        } catch (_) {
+          child = _buildFallback(isDark);
+        }
+      }
+      // Case B: Raw Base64 string without data: header (starts with iVBOR or /9j/ or long string)
+      else if (!raw.startsWith('http://') &&
+          !raw.startsWith('https://') &&
+          !raw.startsWith('/') &&
+          raw.length > 80 &&
+          !raw.contains(' ')) {
+        try {
+          final decoded = base64Decode(raw);
+          child = Image.memory(
+            decoded,
+            width: width,
+            height: height,
+            fit: fit,
+            errorBuilder: (_, __, ___) => _buildFallback(isDark),
+          );
+        } catch (_) {
+          child = _buildFallback(isDark);
+        }
+      }
+      // Case C: Relative or Network URL
+      else {
+        String resolvedUrl = raw;
+        if (resolvedUrl.startsWith('/')) {
+          final base = ApiEndpoints.getBaseUrlSync();
+          resolvedUrl = '$base$resolvedUrl';
+        } else if (!resolvedUrl.startsWith('http://') && !resolvedUrl.startsWith('https://')) {
+          final base = ApiEndpoints.getBaseUrlSync();
+          resolvedUrl = '$base/$resolvedUrl';
+        }
+
+        resolvedUrl = ApiEndpoints.normalizeUrl(resolvedUrl);
+
+        child = CachedNetworkImage(
+          imageUrl: resolvedUrl,
+          width: width,
+          height: height,
+          fit: fit,
+          placeholder: (context, url) => _buildShimmer(isDark),
+          errorWidget: (context, url, error) => _buildFallback(isDark),
+        );
+      }
     } else {
       child = _buildFallback(isDark);
+    }
+
+    if (radius == BorderRadius.zero) {
+      return SizedBox(
+        width: width,
+        height: height,
+        child: child,
+      );
     }
 
     return ClipRRect(
@@ -80,7 +147,7 @@ class ProductThumbnail extends StatelessWidget {
         child: Center(
           child: Icon(
             Icons.image_outlined,
-            size: 36,
+            size: (height != null && height! < 100) ? 24 : 36,
             color: isDark ? AppColors.darkTextDisabled : AppColors.lightTextDisabled,
           ),
         ),

@@ -58,6 +58,7 @@ final dioProvider = Provider<Dio>((ref) {
 
 /// Updates the Dio base URL at runtime (e.g. after user changes backend URL)
 Future<void> updateDioBaseUrl(Dio dio, String newUrl) async {
-  dio.options.baseUrl = newUrl;
-  await ApiEndpoints.setCustomBaseUrl(newUrl);
+  final normalized = ApiEndpoints.normalizeUrl(newUrl);
+  dio.options.baseUrl = normalized;
+  await ApiEndpoints.setCustomBaseUrl(normalized);
 }

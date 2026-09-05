@@ -15,13 +15,21 @@ class AggregatorShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      body: navigationShell,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: navigationShell.currentIndex,
-        onDestinationSelected: (i) => navigationShell.goBranch(
-          i, initialLocation: i == navigationShell.currentIndex),
-        destinations: _items,
+    return PopScope(
+      canPop: navigationShell.currentIndex == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && navigationShell.currentIndex != 0) {
+          navigationShell.goBranch(0);
+        }
+      },
+      child: Scaffold(
+        body: navigationShell,
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: navigationShell.currentIndex,
+          onDestinationSelected: (i) => navigationShell.goBranch(
+            i, initialLocation: i == navigationShell.currentIndex),
+          destinations: _items,
+        ),
       ),
     );
   }

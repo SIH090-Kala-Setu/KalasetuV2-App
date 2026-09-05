@@ -6,6 +6,7 @@ import '../../../core/theme/app_colors.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../shared/models/models.dart';
+import '../../../shared/widgets/product_thumbnail.dart';
 
 final marketplaceProductsProvider = FutureProvider.autoDispose.family<List<ProductModel>, ({String? category, String? search})>((ref, arg) async {
   final api = ref.read(apiClientProvider);
@@ -427,19 +428,12 @@ class _ProductGridCard extends StatelessWidget {
               children: [
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-                  child: SizedBox(
+                  child: ProductThumbnail(
+                    imageUrl: imageUrl,
                     width: double.infinity,
                     height: 130,
-                    child: Image.network(
-                      imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        color: const Color(0xFFF1F5F9),
-                        child: const Center(
-                          child: Icon(Icons.image_outlined, color: Color(0xFF94A3B8), size: 32),
-                        ),
-                      ),
-                    ),
+                    fit: BoxFit.cover,
+                    borderRadius: BorderRadius.zero,
                   ),
                 ),
                 if (hasGi)

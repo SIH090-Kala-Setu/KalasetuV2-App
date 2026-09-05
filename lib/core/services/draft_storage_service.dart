@@ -22,6 +22,7 @@ class ProductDraft {
   final String? titleHi;
   final String? descEn;
   final String? descHi;
+  final String? story;
   final String? category;
   final List<String> tags;
   final List<String> materials;
@@ -43,6 +44,7 @@ class ProductDraft {
     this.titleHi,
     this.descEn,
     this.descHi,
+    this.story,
     this.category,
     this.tags = const [],
     this.materials = const [],
@@ -69,6 +71,7 @@ class ProductDraft {
     String? titleHi,
     String? descEn,
     String? descHi,
+    String? story,
     String? category,
     List<String>? tags,
     List<String>? materials,
@@ -91,6 +94,7 @@ class ProductDraft {
       titleHi: titleHi ?? this.titleHi,
       descEn: descEn ?? this.descEn,
       descHi: descHi ?? this.descHi,
+      story: story ?? this.story,
       category: category ?? this.category,
       tags: tags ?? this.tags,
       materials: materials ?? this.materials,
@@ -114,6 +118,7 @@ class ProductDraft {
         'titleHi': titleHi,
         'descEn': descEn,
         'descHi': descHi,
+        'story': story,
         'category': category,
         'tags': tags,
         'materials': materials,
@@ -136,6 +141,7 @@ class ProductDraft {
         titleHi: json['titleHi'] as String?,
         descEn: json['descEn'] as String?,
         descHi: json['descHi'] as String?,
+        story: json['story'] as String?,
         category: json['category'] as String?,
         tags: List<String>.from(json['tags'] as List? ?? []),
         materials: List<String>.from(json['materials'] as List? ?? []),
