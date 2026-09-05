@@ -47,7 +47,7 @@ dependencies:
   permission_handler: ^11.3.1
 
   # Utilities
-  intl: 0.20.2
+  intl: any
   logger: ^2.4.0
 
 dev_dependencies:
