@@ -1,43 +1,62 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/network/api_client.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
+
+final aggregatorDashboardProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
+  final api = ref.read(apiClientProvider);
+  return api.getAggregatorDashboard();
+});
 
 class AggregatorHomeScreen extends ConsumerWidget {
   const AggregatorHomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final dashAsync = ref.watch(aggregatorDashboardProvider);
+    final dash = dashAsync.valueOrNull;
+
+    final clusterList = dash?['clusters'] as List?;
+    final firstCluster = (clusterList != null && clusterList.isNotEmpty) ? clusterList.first as Map<String, dynamic> : null;
+    final clusterName = firstCluster?['cluster_name']?.toString() ?? 'Varanasi Weavers Co-op';
+    final totalArtisans = dash?['total_artisans']?.toString() ?? '48';
+    final activeListings = dash?['total_active_listings']?.toString() ?? '142';
+    final pendingInquiries = dash?['total_pending_inquiries']?.toString() ?? '6';
+    const revenue = '₹ 4.8L';
+
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── Header Title ───────────────────────────────────────
-              const Text(
-                'Cluster Overview',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.primary,
-                  letterSpacing: -0.5,
+        child: RefreshIndicator(
+          onRefresh: () async => ref.invalidate(aggregatorDashboardProvider),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Header Title ───────────────────────────────────────
+                const Text(
+                  'Cluster Overview',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primary,
+                    letterSpacing: -0.5,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
-              const Text(
-                'Varanasi Weavers Co-op · 48 artisans',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF8A94A6),
+                const SizedBox(height: 2),
+                Text(
+                  '$clusterName · $totalArtisans artisans',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF8A94A6),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 18),
+                const SizedBox(height: 18),
 
               // ── 4 Stats Grid Cards (2x2) ───────────────────────────
               Row(
@@ -58,23 +77,23 @@ class AggregatorHomeScreen extends ConsumerWidget {
                           ),
                         ],
                       ),
-                      child: const Column(
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Icon(Icons.groups_outlined, color: Colors.white70, size: 24),
+                          const Icon(Icons.groups_outlined, color: Colors.white70, size: 24),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                '48',
-                                style: TextStyle(
+                                totalArtisans,
+                                style: const TextStyle(
                                   fontSize: 28,
                                   fontWeight: FontWeight.w800,
                                   color: Colors.white,
                                 ),
                               ),
-                              Text(
+                              const Text(
                                 'Total Artisans',
                                 style: TextStyle(
                                   fontSize: 12,
@@ -103,23 +122,23 @@ class AggregatorHomeScreen extends ConsumerWidget {
                           BoxShadow(color: Color(0x04000000), blurRadius: 8, offset: Offset(0, 2)),
                         ],
                       ),
-                      child: const Column(
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Icon(Icons.inventory_2_outlined, color: AppColors.primary, size: 24),
+                          const Icon(Icons.inventory_2_outlined, color: AppColors.primary, size: 24),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                '142',
-                                style: TextStyle(
+                                activeListings,
+                                style: const TextStyle(
                                   fontSize: 28,
                                   fontWeight: FontWeight.w800,
                                   color: AppColors.primary,
                                 ),
                               ),
-                              Text(
+                              const Text(
                                 'Active Listings',
                                 style: TextStyle(
                                   fontSize: 12,
@@ -152,24 +171,24 @@ class AggregatorHomeScreen extends ConsumerWidget {
                           BoxShadow(color: Color(0x04000000), blurRadius: 8, offset: Offset(0, 2)),
                         ],
                       ),
-                      child: const Column(
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Icon(Icons.access_time_outlined, color: AppColors.primary, size: 24),
+                          const Icon(Icons.access_time_outlined, color: AppColors.primary, size: 24),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                '6',
-                                style: TextStyle(
+                                pendingInquiries,
+                                style: const TextStyle(
                                   fontSize: 28,
                                   fontWeight: FontWeight.w800,
                                   color: AppColors.primary,
                                 ),
                               ),
-                              Text(
-                                'Pending KYC',
+                              const Text(
+                                'Pending Inquiries',
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
@@ -206,7 +225,7 @@ class AggregatorHomeScreen extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                '₹ 4.8L',
+                                revenue,
                                 style: TextStyle(
                                   fontSize: 28,
                                   fontWeight: FontWeight.w800,
@@ -361,7 +380,8 @@ class AggregatorHomeScreen extends ConsumerWidget {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildAttentionItem({

@@ -59,15 +59,19 @@ class UserModel {
         role: (json['role'] ?? 'Artisan').toString(),
         fullName: (json['full_name'] ?? json['fullName'] ?? json['username'] ?? '').toString(),
         email: json['email'] as String?,
-        phone: json['phone'] as String?,
-        preferredLang: (json['preferred_lang'] ?? json['preferredLang'] ?? 'en').toString(),
-        craftType: json['craft_type'] as String? ?? json['craftType'] as String?,
-        region: json['region'] as String?,
+        phone: json['phone'] as String? ?? json['phone_number'] as String?,
+        preferredLang: (json['preferred_lang'] ?? json['preferredLang'] ?? json['preferred_language'] ?? 'en').toString(),
+        craftType: json['craft_type'] as String? ??
+            json['craftType'] as String? ??
+            (json['artisan_profile'] is Map ? json['artisan_profile']['craft_type'] as String? : null),
+        region: json['region'] as String? ?? json['state'] as String?,
         district: json['district'] as String?,
-        kycStatus: (json['kyc_status'] ?? json['kycStatus'] ?? 'draft').toString(),
+        kycStatus: (json['kyc_status'] ?? json['kycStatus'] ?? (json['is_verified'] == true ? 'verified' : 'draft')).toString(),
         isVerified: json['is_verified'] as bool? ?? json['verified'] as bool? ?? false,
         avatarUrl: json['avatar_url'] as String? ?? json['avatar'] as String?,
-        clusterName: json['cluster_name'] as String? ?? json['cluster'] as String?,
+        clusterName: json['cluster_name'] as String? ??
+            json['cluster'] as String? ??
+            (json['artisan_profile'] is Map ? json['artisan_profile']['cluster_name'] as String? : null),
         experienceYears: (json['experience_years'] ?? json['experienceYears'] as num?)?.toInt(),
         village: json['village'] as String?,
         bio: json['bio'] as String?,
@@ -156,33 +160,48 @@ class ProductModel {
   });
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
-    // Handle both base64 data URIs and remote URLs
+    // Handle both base64 data URIs, remote URLs, and backend 'images' array
     String? imageUrl = json['image_url'] as String? ??
         json['imageUrl'] as String? ??
         json['image'] as String?;
+    if (imageUrl == null && json['images'] is List && (json['images'] as List).isNotEmpty) {
+      imageUrl = (json['images'] as List).first?.toString();
+    }
+
+    // Handle materials as List<String> or CSV string from DB
+    List<String> materials = [];
+    if (json['materials'] is List) {
+      materials = List<String>.from(json['materials'] as List);
+    } else if (json['material'] is String && (json['material'] as String).isNotEmpty) {
+      materials = (json['material'] as String)
+          .split(',')
+          .map((s) => s.trim())
+          .where((s) => s.isNotEmpty)
+          .toList();
+    }
 
     return ProductModel(
       id: (json['id'] ?? '').toString(),
       titleEn: (json['title_en'] ?? json['titleEn'] ?? json['title'] ?? 'Unnamed Product').toString(),
       titleHi: (json['title_hi'] ?? json['titleHi'] ?? json['title_en'] ?? '').toString(),
       imageUrl: imageUrl,
-      category: (json['category'] ?? 'General').toString(),
-      craft: json['craft'] as String?,
-      region: json['region'] as String?,
-      state: json['state'] as String?,
-      retailPrice: (json['retail_price'] ?? json['retailPrice'] ?? json['price'] ?? 0).toDouble(),
-      b2bPrice: (json['b2b_price'] ?? json['b2bPrice'] ?? json['priceBulk'] ?? 0).toDouble(),
+      category: (json['category'] ?? json['craft_category'] ?? 'General').toString(),
+      craft: (json['craft'] ?? json['craft_category']) as String?,
+      region: (json['region'] ?? json['artisan_state']) as String?,
+      state: (json['state'] ?? json['artisan_state']) as String?,
+      retailPrice: (json['retail_price'] ?? json['retailPrice'] ?? json['price'] ?? json['base_price'] ?? 0).toDouble(),
+      b2bPrice: (json['b2b_price'] ?? json['b2bPrice'] ?? json['priceBulk'] ?? json['suggested_price'] ?? 0).toDouble(),
       moq: (json['moq'] as num?)?.toInt() ?? 10,
-      stock: (json['stock'] as num?)?.toInt() ?? 0,
+      stock: (json['stock'] ?? json['stock_count'] as num?)?.toInt() ?? 0,
       status: (json['status'] ?? 'Draft').toString(),
-      artisanId: json['artisan_id'] as String? ?? json['artisanId'] as String?,
-      artisanName: json['artisan_name'] as String? ?? json['artisanName'] as String?,
+      artisanId: (json['artisan_id'] ?? json['artisanId']) as String?,
+      artisanName: (json['artisan_name'] ?? json['artisanName']) as String?,
       giTag: json['gi_tag'] as bool? ?? json['giTag'] as bool? ?? false,
       rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
       reviewCount: (json['review_count'] ?? json['reviews'] as num?)?.toInt() ?? 0,
       descriptionEn: json['description_en'] as String? ?? json['descriptionEn'] as String? ?? json['storyEn'] as String?,
       descriptionHi: json['description_hi'] as String? ?? json['descriptionHi'] as String? ?? json['storyHi'] as String?,
-      materials: List<String>.from(json['materials'] as List? ?? []),
+      materials: materials,
       tags: List<String>.from(json['tags'] as List? ?? json['seoTags'] as List? ?? []),
       complexity: json['complexity'] as String?,
       aiScore: (json['ai_score'] ?? json['aiScore'] as num?)?.toDouble(),
@@ -264,27 +283,31 @@ class PriceBreakdownModel {
   });
 
   factory PriceBreakdownModel.fromJson(Map<String, dynamic> json) {
-    final shapList = json['shap_factors'] ?? json['shapFactors'] ?? [];
+    final shapList = json['shap_factors'] ?? json['shapFactors'] ?? json['shap_top_features'] ?? [];
+    final retail = (json['suggested_retail_price'] ??
+            json['suggestedRetailPrice'] ??
+            json['retail_price'] ??
+            json['predicted_price_inr'] ??
+            json['suggested_price'] ??
+            0)
+        .toDouble();
+    final b2b = (json['suggested_b2b_price'] ??
+            json['suggestedB2bPrice'] ??
+            json['b2b_price'] ??
+            json['wholesale_price'] ??
+            (retail * 0.75))
+        .toDouble();
+
     return PriceBreakdownModel(
-      suggestedRetailPrice: (json['suggested_retail_price'] ??
-              json['suggestedRetailPrice'] ??
-              json['retail_price'] ??
-              json['suggested_price'] ??
-              0)
-          .toDouble(),
-      suggestedB2bPrice: (json['suggested_b2b_price'] ??
-              json['suggestedB2bPrice'] ??
-              json['b2b_price'] ??
-              json['wholesale_price'] ??
-              0)
-          .toDouble(),
-      materialCost: (json['material_cost'] ?? json['materialCost'] ?? 0).toDouble(),
-      laborCost: (json['labor_cost'] ?? json['laborCost'] ?? 0).toDouble(),
+      suggestedRetailPrice: retail,
+      suggestedB2bPrice: b2b,
+      materialCost: (json['material_cost'] ?? json['materialCost'] ?? json['raw_material_cost_inr'] ?? 0).toDouble(),
+      laborCost: (json['labor_cost'] ?? json['laborCost'] ?? json['labor_cost_inr'] ?? 0).toDouble(),
       overheadCost: (json['overhead_cost'] ?? json['overheadCost'] ?? 0).toDouble(),
       profitMargin: (json['profit_margin'] ?? json['profitMargin'] ?? 0).toDouble(),
-      minPrice: (json['min_price'] ?? json['minPrice'] ?? 0).toDouble(),
-      avgPrice: (json['avg_price'] ?? json['avgPrice'] ?? 0).toDouble(),
-      maxPrice: (json['max_price'] ?? json['maxPrice'] ?? 0).toDouble(),
+      minPrice: (json['min_price'] ?? json['minPrice'] ?? json['price_lower_bound_inr'] ?? json['fair_wage_floor_inr'] ?? 0).toDouble(),
+      avgPrice: (json['avg_price'] ?? json['avgPrice'] ?? retail).toDouble(),
+      maxPrice: (json['max_price'] ?? json['maxPrice'] ?? json['price_upper_bound_inr'] ?? 0).toDouble(),
       complexity: (json['complexity'] ?? 'Moderate').toString(),
       shapFactors: List<ShapFactor>.from(
         (shapList as List).map((e) => ShapFactor.fromJson(e as Map<String, dynamic>)),
@@ -306,8 +329,8 @@ class ShapFactor {
   });
 
   factory ShapFactor.fromJson(Map<String, dynamic> json) => ShapFactor(
-        feature: (json['feature'] ?? json['name'] ?? '').toString(),
-        value: (json['value'] as num?)?.toDouble() ?? 0.0,
+        feature: (json['description'] ?? json['feature'] ?? json['name'] ?? '').toString(),
+        value: (json['shap_value'] ?? json['value'] as num?)?.toDouble() ?? 0.0,
         direction: json['direction'] as String?,
       );
 }
@@ -354,7 +377,11 @@ class InquiryModel {
         buyerOrg: json['buyer_org'] as String? ?? json['buyerOrg'] as String?,
         buyerEmail: json['buyer_email'] as String? ?? json['buyerEmail'] as String?,
         productId: (json['product_id'] ?? json['productId'] ?? '').toString(),
-        productTitle: (json['product_title'] ?? json['productTitle'] ?? '').toString(),
+        productTitle: (json['product_title'] ??
+                json['productTitle'] ??
+                (json['product'] is Map ? json['product']['title_en'] : null) ??
+                '')
+            .toString(),
         quantity: (json['quantity'] as num?)?.toInt() ?? 1,
         targetDate: json['target_date'] as String? ?? json['targetDate'] as String?,
         status: (json['status'] ?? 'inquiry-sent').toString(),
@@ -465,16 +492,38 @@ class ExhibitionModel {
     this.description,
   });
 
-  factory ExhibitionModel.fromJson(Map<String, dynamic> json) => ExhibitionModel(
-        id: (json['id'] ?? '').toString(),
-        name: (json['name'] ?? '').toString(),
-        location: json['location'] as String?,
-        dates: json['dates'] as String?,
-        status: (json['status'] ?? 'register').toString(),
-        boothNumber: json['booth_number'] as String? ?? json['booth'] as String?,
-        imageUrl: json['image'] as String? ?? json['image_url'] as String?,
-        description: json['description'] as String?,
-      );
+  factory ExhibitionModel.fromJson(Map<String, dynamic> json) {
+    // Backend returns start_date + end_date separately; merge into a display string
+    String? dates = json['dates'] as String?;
+    if (dates == null) {
+      final start = json['start_date'] as String?;
+      final end = json['end_date'] as String?;
+      if (start != null && end != null) {
+        dates = '$start – $end';
+      } else if (start != null) {
+        dates = start;
+      }
+    }
+    // Map backend registration status to Flutter expected values
+    String status = (json['status'] ?? 'register').toString();
+    final isRegistered = json['is_registered'] as bool? ?? false;
+    final regStatus = json['reg_status'] as String?;
+    if (isRegistered) {
+      status = regStatus?.toLowerCase() ?? 'pending';
+    } else if (status == 'Upcoming' || status == 'Ongoing') {
+      status = 'register';
+    }
+    return ExhibitionModel(
+      id: (json['id'] ?? '').toString(),
+      name: (json['name'] ?? '').toString(),
+      location: json['location'] as String?,
+      dates: dates,
+      status: status,
+      boothNumber: json['booth_number'] as String? ?? json['booth'] as String?,
+      imageUrl: json['image'] as String? ?? json['image_url'] as String?,
+      description: json['description'] as String?,
+    );
+  }
 }
 
 // ── GovtSchemeModel ───────────────────────────────────────────
@@ -499,12 +548,12 @@ class GovtSchemeModel {
 
   factory GovtSchemeModel.fromJson(Map<String, dynamic> json) => GovtSchemeModel(
         id: (json['id'] ?? '').toString(),
-        name: (json['name'] ?? '').toString(),
+        name: (json['scheme_name'] ?? json['name'] ?? '').toString(),
         nameHi: json['name_hi'] as String? ?? json['nameHi'] as String?,
         description: json['description'] as String?,
-        deadline: json['deadline'] as String?,
-        category: json['category'] as String?,
-        applyUrl: json['apply_url'] as String?,
+        deadline: json['deadline'] as String? ?? json['valid_until'] as String?,
+        category: json['category'] as String? ?? json['eligibility_criteria'] as String?,
+        applyUrl: json['apply_url'] as String? ?? json['application_url'] as String?,
       );
 }
 

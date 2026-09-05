@@ -2,6 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 
+import '../../../core/network/api_client.dart';
+import '../../../shared/models/models.dart';
+
+final buyerInquiriesProvider = FutureProvider.autoDispose<List<InquiryModel>>((ref) async {
+  final api = ref.read(apiClientProvider);
+  return api.getInquiries();
+});
+
 class MyInquiriesScreen extends ConsumerWidget {
   const MyInquiriesScreen({super.key});
 
@@ -33,8 +41,18 @@ class MyInquiriesScreen extends ConsumerWidget {
     },
   ];
 
+  int _mapStatusToStage(String status) {
+    final s = status.toLowerCase();
+    if (s.contains('dispatch') || s.contains('complet') || s.contains('deliver')) return 4;
+    if (s.contains('final') || s.contains('accept') || s.contains('progress')) return 3;
+    if (s.contains('quot') || s.contains('review')) return 2;
+    return 1;
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final inquiriesAsync = ref.watch(buyerInquiriesProvider);
+
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
       body: SafeArea(
@@ -56,19 +74,58 @@ class MyInquiriesScreen extends ConsumerWidget {
               const SizedBox(height: 16),
 
               Expanded(
-                child: ListView.separated(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.only(bottom: 24),
-                  itemCount: _orders.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 14),
-                  itemBuilder: (context, index) {
-                    final order = _orders[index];
-                    return _OrderStepperCard(
-                      title: order['title'] as String,
-                      client: order['client'] as String,
-                      currentStage: order['stage'] as int,
-                    );
-                  },
+                child: RefreshIndicator(
+                  onRefresh: () async => ref.invalidate(buyerInquiriesProvider),
+                  child: inquiriesAsync.when(
+                    data: (items) {
+                      if (items.isEmpty) {
+                        return ListView.separated(
+                          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                          padding: const EdgeInsets.only(bottom: 24),
+                          itemCount: _orders.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 14),
+                          itemBuilder: (context, index) {
+                            final order = _orders[index];
+                            return _OrderStepperCard(
+                              title: order['title'] as String,
+                              client: order['client'] as String,
+                              currentStage: order['stage'] as int,
+                            );
+                          },
+                        );
+                      }
+
+                      return ListView.separated(
+                        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                        padding: const EdgeInsets.only(bottom: 24),
+                        itemCount: items.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 14),
+                        itemBuilder: (context, index) {
+                          final item = items[index];
+                          return _OrderStepperCard(
+                            title: item.productTitle.isNotEmpty ? item.productTitle : 'Artisan Craft',
+                            client: '${item.quantity} units · Status: ${item.status}',
+                            currentStage: _mapStatusToStage(item.status),
+                          );
+                        },
+                      );
+                    },
+                    loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+                    error: (err, stack) => ListView.separated(
+                      physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                      padding: const EdgeInsets.only(bottom: 24),
+                      itemCount: _orders.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 14),
+                      itemBuilder: (context, index) {
+                        final order = _orders[index];
+                        return _OrderStepperCard(
+                          title: order['title'] as String,
+                          client: order['client'] as String,
+                          currentStage: order['stage'] as int,
+                        );
+                      },
+                    ),
+                  ),
                 ),
               ),
             ],

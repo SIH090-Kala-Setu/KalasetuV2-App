@@ -4,6 +4,14 @@ import 'package:go_router/go_router.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 
+import '../../../core/network/api_client.dart';
+import '../../../shared/models/models.dart';
+
+final artisanProductsProvider = FutureProvider.autoDispose<List<ProductModel>>((ref) async {
+  final api = ref.read(apiClientProvider);
+  return api.getProducts();
+});
+
 class ArtisanCatalogueScreen extends ConsumerStatefulWidget {
   const ArtisanCatalogueScreen({super.key});
 
@@ -17,6 +25,7 @@ class _ArtisanCatalogueScreenState extends ConsumerState<ArtisanCatalogueScreen>
   // Demo fallback products matching the exact screenshot
   static final _demoCatalogue = [
     {
+      'id': 'p1',
       'titleEn': 'Handwoven Varanasi Pure Silk Dupatta with Zari Border',
       'titleHi': 'हथकरघा बनारसी सिल्क दुपट्टा (ज़री बॉर्डर)',
       'price': 1200,
@@ -26,6 +35,7 @@ class _ArtisanCatalogueScreenState extends ConsumerState<ArtisanCatalogueScreen>
       'imageUrl': 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=600',
     },
     {
+      'id': 'p2',
       'titleEn': 'Jaipur Blue Pottery Decorative Vase Set',
       'titleHi': 'जयपुर नीली मिट्टी का सजावटी फूलदान सेट',
       'price': 850,
@@ -35,6 +45,7 @@ class _ArtisanCatalogueScreenState extends ConsumerState<ArtisanCatalogueScreen>
       'imageUrl': 'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=600',
     },
     {
+      'id': 'p3',
       'titleEn': 'Bastar Dhokra Bronze Figurine',
       'titleHi': 'बस्तर ढोकरा कांस्य मूर्ति',
       'price': 2200,
@@ -47,6 +58,8 @@ class _ArtisanCatalogueScreenState extends ConsumerState<ArtisanCatalogueScreen>
 
   @override
   Widget build(BuildContext context) {
+    final productsAsync = ref.watch(artisanProductsProvider);
+
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
       body: SafeArea(
@@ -88,23 +101,84 @@ class _ArtisanCatalogueScreenState extends ConsumerState<ArtisanCatalogueScreen>
 
               // Product Cards List
               Expanded(
-                child: ListView.separated(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.only(bottom: 24),
-                  itemCount: _demoCatalogue.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 18),
-                  itemBuilder: (context, index) {
-                    final item = _demoCatalogue[index];
-                    return _CatalogueCard(
-                      titleEn: item['titleEn'] as String,
-                      titleHi: item['titleHi'] as String,
-                      price: item['price'] as int,
-                      status: item['status'] as String,
-                      initialStock: item['stock'] as int,
-                      hasGi: item['hasGi'] as bool,
-                      imageUrl: item['imageUrl'] as String,
-                    );
-                  },
+                child: RefreshIndicator(
+                  onRefresh: () async => ref.invalidate(artisanProductsProvider),
+                  child: productsAsync.when(
+                    data: (products) {
+                      final filtered = products.where((p) {
+                        if (_selectedFilter == 'Active') return p.status == 'Active';
+                        if (_selectedFilter == 'Drafts') return p.status == 'Draft' || p.status == 'Pending Review';
+                        if (_selectedFilter == 'Sold Out') return p.status == 'Sold Out';
+                        return true;
+                      }).toList();
+
+                      if (filtered.isEmpty && products.isEmpty) {
+                        return ListView.separated(
+                          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                          padding: const EdgeInsets.only(bottom: 24),
+                          itemCount: _demoCatalogue.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 18),
+                          itemBuilder: (context, index) {
+                            final item = _demoCatalogue[index];
+                            return _CatalogueCard(
+                              id: item['id'] as String?,
+                              titleEn: item['titleEn'] as String,
+                              titleHi: item['titleHi'] as String,
+                              price: item['price'] as int,
+                              status: item['status'] as String,
+                              initialStock: item['stock'] as int,
+                              hasGi: item['hasGi'] as bool,
+                              imageUrl: item['imageUrl'] as String,
+                            );
+                          },
+                        );
+                      }
+
+                      return ListView.separated(
+                        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                        padding: const EdgeInsets.only(bottom: 24),
+                        itemCount: filtered.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 18),
+                        itemBuilder: (context, index) {
+                          final p = filtered[index];
+                          return _CatalogueCard(
+                            id: p.id,
+                            titleEn: p.titleEn,
+                            titleHi: p.titleHi.isNotEmpty ? p.titleHi : p.titleEn,
+                            price: p.retailPrice.toInt(),
+                            status: p.status,
+                            initialStock: p.stock,
+                            hasGi: p.giTag,
+                            imageUrl: (p.imageUrl != null && p.imageUrl!.isNotEmpty)
+                                ? p.imageUrl!
+                                : 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=600',
+                          );
+                        },
+                      );
+                    },
+                    loading: () => const Center(
+                      child: CircularProgressIndicator(color: AppColors.primary),
+                    ),
+                    error: (err, stack) => ListView.separated(
+                      physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                      padding: const EdgeInsets.only(bottom: 24),
+                      itemCount: _demoCatalogue.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 18),
+                      itemBuilder: (context, index) {
+                        final item = _demoCatalogue[index];
+                        return _CatalogueCard(
+                          id: item['id'] as String?,
+                          titleEn: item['titleEn'] as String,
+                          titleHi: item['titleHi'] as String,
+                          price: item['price'] as int,
+                          status: item['status'] as String,
+                          initialStock: item['stock'] as int,
+                          hasGi: item['hasGi'] as bool,
+                          imageUrl: item['imageUrl'] as String,
+                        );
+                      },
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -148,7 +222,8 @@ class _ArtisanCatalogueScreenState extends ConsumerState<ArtisanCatalogueScreen>
   }
 }
 
-class _CatalogueCard extends StatefulWidget {
+class _CatalogueCard extends ConsumerStatefulWidget {
+  final String? id;
   final String titleEn;
   final String titleHi;
   final int price;
@@ -158,6 +233,7 @@ class _CatalogueCard extends StatefulWidget {
   final String imageUrl;
 
   const _CatalogueCard({
+    this.id,
     required this.titleEn,
     required this.titleHi,
     required this.price,
@@ -168,10 +244,10 @@ class _CatalogueCard extends StatefulWidget {
   });
 
   @override
-  State<_CatalogueCard> createState() => _CatalogueCardState();
+  ConsumerState<_CatalogueCard> createState() => _CatalogueCardState();
 }
 
-class _CatalogueCardState extends State<_CatalogueCard> {
+class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
   late int _stock;
 
   @override
@@ -313,8 +389,16 @@ class _CatalogueCardState extends State<_CatalogueCard> {
                       children: [
                         _buildStepperBtn(
                           icon: Icons.remove,
-                          onTap: () {
-                            if (_stock > 0) setState(() => _stock--);
+                          onTap: () async {
+                            if (_stock > 0) {
+                              setState(() => _stock--);
+                              if (widget.id != null) {
+                                try {
+                                  final api = ref.read(apiClientProvider);
+                                  await api.updateProductStock(widget.id!, _stock);
+                                } catch (_) {}
+                              }
+                            }
                           },
                         ),
                         Padding(
@@ -330,7 +414,15 @@ class _CatalogueCardState extends State<_CatalogueCard> {
                         ),
                         _buildStepperBtn(
                           icon: Icons.add,
-                          onTap: () => setState(() => _stock++),
+                          onTap: () async {
+                            setState(() => _stock++);
+                            if (widget.id != null) {
+                              try {
+                                final api = ref.read(apiClientProvider);
+                                await api.updateProductStock(widget.id!, _stock);
+                              } catch (_) {}
+                            }
+                          },
                         ),
                       ],
                     ),

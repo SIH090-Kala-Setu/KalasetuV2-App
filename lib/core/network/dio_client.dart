@@ -20,10 +20,27 @@ final dioProvider = Provider<Dio>((ref) {
     },
   );
 
-  // Logging interceptor (debug only)
+  // Base URL & logging interceptor
+  dio.interceptors.add(
+    InterceptorsWrapper(
+      onRequest: (options, handler) {
+        if (!options.path.startsWith('http://') && !options.path.startsWith('https://')) {
+          options.baseUrl = ApiEndpoints.getBaseUrlSync();
+        }
+        _logger.d('🚀 [DIO] ${options.method} -> ${options.uri}');
+        handler.next(options);
+      },
+      onError: (err, handler) {
+        _logger.e('❌ [DIO] Error on ${err.requestOptions.uri}: ${err.message} (${err.response?.statusCode})');
+        handler.next(err);
+      },
+    ),
+  );
+
+  // Logging interceptor (debug body details)
   dio.interceptors.add(
     LogInterceptor(
-      request: true,
+      request: false,
       requestHeader: false,
       requestBody: true,
       responseHeader: false,
@@ -42,4 +59,5 @@ final dioProvider = Provider<Dio>((ref) {
 /// Updates the Dio base URL at runtime (e.g. after user changes backend URL)
 Future<void> updateDioBaseUrl(Dio dio, String newUrl) async {
   dio.options.baseUrl = newUrl;
+  await ApiEndpoints.setCustomBaseUrl(newUrl);
 }

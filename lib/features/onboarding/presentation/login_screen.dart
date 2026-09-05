@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/providers/auth_provider.dart';
+import '../../../shared/widgets/server_config_dialog.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -13,14 +14,14 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _usernameCtrl = TextEditingController(text: 'artisan_ramesh');
+  final _usernameCtrl = TextEditingController(text: '1234567890');
   final _passwordCtrl = TextEditingController(text: '123456');
   final _formKey = GlobalKey<FormState>();
 
   static const _testCredentials = [
-    ('artisan_ramesh', '123456', 'Artisan', 'Ramesh Sharma (Artisan)'),
-    ('aggregator_demo', '123456', 'Aggregator', 'Demo Aggregator'),
-    ('buyer_fabindia', '123456', 'Buyer', 'FabIndia Buyer'),
+    ('1234567890', '123456', 'Artisan', 'Artisan (1234567890)'),
+    ('1234', '123456', 'Aggregator', 'Aggregator (1234)'),
+    ('123', '123456', 'Buyer', 'Buyer (123)'),
   ];
 
   @override
@@ -46,11 +47,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 16),
-                IconButton(
-                  icon: const Icon(Icons.arrow_back_rounded, color: AppColors.primary, size: 22),
-                  onPressed: () => context.pop(),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_rounded, color: AppColors.primary, size: 22),
+                      onPressed: () => context.pop(),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.settings_suggest_rounded, color: AppColors.primary, size: 24),
+                      tooltip: 'Server Settings',
+                      onPressed: () => ServerConfigDialog.show(context),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 24),
 

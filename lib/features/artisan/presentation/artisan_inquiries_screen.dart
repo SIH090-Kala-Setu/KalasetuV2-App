@@ -2,6 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 
+import '../../../core/network/api_client.dart';
+import '../../../shared/models/models.dart';
+
+final artisanInquiriesProvider = FutureProvider.autoDispose<List<InquiryModel>>((ref) async {
+  final api = ref.read(apiClientProvider);
+  return api.getInquiries();
+});
+
 class ArtisanInquiriesScreen extends ConsumerWidget {
   const ArtisanInquiriesScreen({super.key});
 
@@ -50,6 +58,8 @@ class ArtisanInquiriesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final inquiriesAsync = ref.watch(artisanInquiriesProvider);
+
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
       body: SafeArea(
@@ -71,23 +81,79 @@ class ArtisanInquiriesScreen extends ConsumerWidget {
               const SizedBox(height: 16),
 
               Expanded(
-                child: ListView.separated(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.only(bottom: 24),
-                  itemCount: _inquiries.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final item = _inquiries[index];
-                    return _InquiryListItem(
-                      buyer: item['buyer'] as String,
-                      status: item['status'] as String,
-                      statusBg: item['statusBg'] as Color,
-                      statusColor: item['statusColor'] as Color,
-                      description: item['description'] as String,
-                      time: item['time'] as String,
-                      onTap: () => _showInquiryDetailsModal(context, item['buyer'] as String, item['description'] as String),
-                    );
-                  },
+                child: RefreshIndicator(
+                  onRefresh: () async => ref.invalidate(artisanInquiriesProvider),
+                  child: inquiriesAsync.when(
+                    data: (items) {
+                      if (items.isEmpty) {
+                        return ListView.separated(
+                          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                          padding: const EdgeInsets.only(bottom: 24),
+                          itemCount: _inquiries.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            final item = _inquiries[index];
+                            return _InquiryListItem(
+                              buyer: item['buyer'] as String,
+                              status: item['status'] as String,
+                              statusBg: item['statusBg'] as Color,
+                              statusColor: item['statusColor'] as Color,
+                              description: item['description'] as String,
+                              time: item['time'] as String,
+                              onTap: () => _showInquiryDetailsModal(context, ref, null, item['buyer'] as String, item['description'] as String),
+                            );
+                          },
+                        );
+                      }
+
+                      return ListView.separated(
+                        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                        padding: const EdgeInsets.only(bottom: 24),
+                        itemCount: items.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final item = items[index];
+                          final isNew = item.status == 'inquiry-sent' || item.status == 'New' || item.status == 'Pending';
+                          return _InquiryListItem(
+                            buyer: item.buyerName,
+                            status: item.status,
+                            statusBg: isNew ? const Color(0xFFFEF3C7) : const Color(0xFFD1FAE5),
+                            statusColor: isNew ? const Color(0xFFD97706) : const Color(0xFF047857),
+                            description: '${item.quantity} units · ${item.productTitle.isNotEmpty ? item.productTitle : "Artisan Craft"}',
+                            time: item.createdAt != null
+                                ? '${item.createdAt!.day}/${item.createdAt!.month}/${item.createdAt!.year}'
+                                : 'Recent',
+                            onTap: () => _showInquiryDetailsModal(
+                              context,
+                              ref,
+                              item.id,
+                              item.buyerName,
+                              '${item.quantity} units · ${item.productTitle}\n${item.note ?? ""}',
+                            ),
+                          );
+                        },
+                      );
+                    },
+                    loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+                    error: (err, stack) => ListView.separated(
+                      physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                      padding: const EdgeInsets.only(bottom: 24),
+                      itemCount: _inquiries.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final item = _inquiries[index];
+                        return _InquiryListItem(
+                          buyer: item['buyer'] as String,
+                          status: item['status'] as String,
+                          statusBg: item['statusBg'] as Color,
+                          statusColor: item['statusColor'] as Color,
+                          description: item['description'] as String,
+                          time: item['time'] as String,
+                          onTap: () => _showInquiryDetailsModal(context, ref, null, item['buyer'] as String, item['description'] as String),
+                        );
+                      },
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -97,7 +163,7 @@ class ArtisanInquiriesScreen extends ConsumerWidget {
     );
   }
 
-  void _showInquiryDetailsModal(BuildContext context, String buyer, String desc) {
+  void _showInquiryDetailsModal(BuildContext context, WidgetRef ref, String? inquiryId, String buyer, String desc) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -130,11 +196,19 @@ class ArtisanInquiriesScreen extends ConsumerWidget {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Inquiry declined')),
-                      );
+                      if (inquiryId != null) {
+                        try {
+                          await ref.read(apiClientProvider).respondToInquiry(inquiryId, 'Inquiry declined by artisan.');
+                          ref.invalidate(artisanInquiriesProvider);
+                        } catch (_) {}
+                      }
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Inquiry declined')),
+                        );
+                      }
                     },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFFDC2626),
@@ -148,11 +222,19 @@ class ArtisanInquiriesScreen extends ConsumerWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Accepted inquiry from $buyer!')),
-                      );
+                      if (inquiryId != null) {
+                        try {
+                          await ref.read(apiClientProvider).respondToInquiry(inquiryId, 'Inquiry accepted! We are preparing the order.');
+                          ref.invalidate(artisanInquiriesProvider);
+                        } catch (_) {}
+                      }
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Accepted inquiry from $buyer!')),
+                        );
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF15803D),

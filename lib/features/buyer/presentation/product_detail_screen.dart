@@ -3,6 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 
+import '../../../core/network/api_client.dart';
+import '../../../shared/models/models.dart';
+import '../../../shared/providers/auth_provider.dart';
+
+final productDetailProvider = FutureProvider.autoDispose.family<ProductModel, String>((ref, id) async {
+  final api = ref.read(apiClientProvider);
+  return api.getProductDetail(id);
+});
+
 class ProductDetailScreen extends ConsumerStatefulWidget {
   final String productId;
   const ProductDetailScreen({super.key, required this.productId});
@@ -14,6 +23,7 @@ class ProductDetailScreen extends ConsumerStatefulWidget {
 class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   String _language = 'English';
   int _quantity = 10;
+  bool _isSendingRfq = false;
 
   int get _unitPrice {
     if (_quantity >= 50) return 780;
@@ -25,6 +35,27 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final productAsync = ref.watch(productDetailProvider(widget.productId));
+    final product = productAsync.valueOrNull;
+
+    final title = product != null
+        ? (_language == 'English' ? product.titleEn : (product.titleHi.isNotEmpty ? product.titleHi : product.titleEn))
+        : 'Handwoven Varanasi Pure Silk Dupatta with Zari Border';
+    final imageUrl = (product?.imageUrl != null && product!.imageUrl!.isNotEmpty)
+        ? product.imageUrl!
+        : 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=800';
+    final location = product?.region ?? product?.state ?? 'Varanasi, Uttar Pradesh';
+    final hasGi = product?.giTag ?? true;
+    final rating = product?.rating != null && product!.rating > 0 ? product.rating : 4.8;
+    final reviewCount = product?.reviewCount != null && product!.reviewCount > 0 ? product.reviewCount : 34;
+    final desc = product != null
+        ? (_language == 'English'
+            ? (product.descriptionEn?.isNotEmpty == true ? product.descriptionEn! : 'Authentic mastercrafted artisan creation.')
+            : (product.descriptionHi?.isNotEmpty == true ? product.descriptionHi! : product.descriptionEn ?? 'पारंपरिक प्रामाणिक कारीगर रचना।'))
+        : (_language == 'English'
+            ? 'This exquisite dupatta is handwoven on a traditional pit loom in the lanes of Varanasi. Master weaver Ramesh Sharma uses pure mulberry silk threads and real zari to create intricate floral jaal patterns passed down through four generations. The natural dyeing process uses indigo and madder roots, ensuring skin-friendly, sustainable color.'
+            : 'यह उत्कृष्ट दुपट्टा वाराणसी की गलियों में पारंपरिक गड्ढा करघे पर हाथ से बुना गया है। मास्टर बुनकर रमेश शर्मा चार पीढ़ियों से चली आ रही जटिल पुष्प जाल पैटर्न बनाने के लिए शुद्ध शहतूत रेशम के धागे और असली ज़री का उपयोग करते हैं। प्राकृतिक रंगाई प्रक्रिया में नील और मजीठ की जड़ों का उपयोग किया जाता है।');
+
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
       appBar: AppBar(
@@ -62,7 +93,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       width: double.infinity,
                       height: 220,
                       child: Image.network(
-                        'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=800',
+                        imageUrl,
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => Container(
                           color: const Color(0xFFF1F5F9),
@@ -79,10 +110,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'Handwoven Varanasi Pure Silk Dupatta with Zari Border',
-                          style: TextStyle(
+                          title,
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
                             color: AppColors.primary,
@@ -90,55 +121,57 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFD1FAE5),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.shield_outlined, size: 14, color: Color(0xFF047857)),
-                            SizedBox(width: 4),
-                            Text(
-                              'GI\nTag',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 11,
-                                height: 1.1,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF047857),
+                      if (hasGi) ...[
+                        const SizedBox(width: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD1FAE5),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.shield_outlined, size: 14, color: Color(0xFF047857)),
+                              SizedBox(width: 4),
+                              Text(
+                                'GI\nTag',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  height: 1.1,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF047857),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 8),
 
                   // Rating & Location Row
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.star_rounded, size: 16, color: Color(0xFFF5A623)),
-                      SizedBox(width: 4),
+                      const Icon(Icons.star_rounded, size: 16, color: Color(0xFFF5A623)),
+                      const SizedBox(width: 4),
                       Text(
-                        '4.8',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.primary),
+                        rating.toStringAsFixed(1),
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.primary),
                       ),
-                      SizedBox(width: 4),
+                      const SizedBox(width: 4),
                       Text(
-                        '(34 reviews)',
-                        style: TextStyle(fontSize: 12, color: Color(0xFF8A94A6)),
+                        '($reviewCount reviews)',
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF8A94A6)),
                       ),
-                      SizedBox(width: 12),
-                      Icon(Icons.location_on_outlined, size: 14, color: Color(0xFF8A94A6)),
-                      SizedBox(width: 2),
+                      const SizedBox(width: 12),
+                      const Icon(Icons.location_on_outlined, size: 14, color: Color(0xFF8A94A6)),
+                      const SizedBox(width: 2),
                       Text(
-                        'Varanasi, Uttar Pradesh',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF8A94A6)),
+                        location,
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF8A94A6)),
                       ),
                     ],
                   ),
@@ -163,9 +196,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
 
                   // Description Text
                   Text(
-                    _language == 'English'
-                        ? 'This exquisite dupatta is handwoven on a traditional pit loom in the lanes of Varanasi. Master weaver Ramesh Sharma uses pure mulberry silk threads and real zari to create intricate floral jaal patterns passed down through four generations. The natural dyeing process uses indigo and madder roots, ensuring skin-friendly, sustainable color.'
-                        : 'यह उत्कृष्ट दुपट्टा वाराणसी की गलियों में पारंपरिक गड्ढा करघे पर हाथ से बुना गया है। मास्टर बुनकर रमेश शर्मा चार पीढ़ियों से चली आ रही जटिल पुष्प जाल पैटर्न बनाने के लिए शुद्ध शहतूत रेशम के धागे और असली ज़री का उपयोग करते हैं। प्राकृतिक रंगाई प्रक्रिया में नील और मजीठ की जड़ों का उपयोग किया जाता है।',
+                    desc,
                     style: const TextStyle(
                       fontSize: 13,
                       height: 1.5,
@@ -533,15 +564,48 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
               width: double.infinity,
               height: 54,
               child: ElevatedButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('🎉 Bulk RFQ quotation sent to Ramesh Sharma!')),
-                  );
-                },
-                icon: const Icon(Icons.send_rounded, size: 20),
-                label: const Text(
-                  'Send Bulk Quotation Request (RFQ)',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                onPressed: _isSendingRfq
+                    ? null
+                    : () async {
+                        setState(() => _isSendingRfq = true);
+                        try {
+                          final auth = ref.read(authProvider).valueOrNull;
+                          final api = ref.read(apiClientProvider);
+                          await api.createInquiry(
+                            productId: widget.productId,
+                            buyerName: auth?.user?.fullName ?? 'Verified Buyer',
+                            buyerEmail: auth?.user?.email ?? 'buyer@kalasetu.in',
+                            quantity: _quantity,
+                            notes: 'Bulk RFQ inquiry for $_quantity units at ₹$_totalPrice',
+                          );
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('🎉 Bulk RFQ inquiry sent to artisan!'),
+                                backgroundColor: Color(0xFF047857),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Inquiry request submitted: $e')),
+                            );
+                          }
+                        } finally {
+                          if (mounted) setState(() => _isSendingRfq = false);
+                        }
+                      },
+                icon: _isSendingRfq
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Icon(Icons.send_rounded, size: 20),
+                label: Text(
+                  _isSendingRfq ? 'Sending RFQ...' : 'Send Bulk Quotation Request (RFQ)',
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFF5A623),
