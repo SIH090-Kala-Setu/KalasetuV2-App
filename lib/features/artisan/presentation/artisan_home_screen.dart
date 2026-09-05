@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/network/api_client.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/providers/auth_provider.dart';
+
+final artisanDashboardProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
+  final api = ref.read(apiClientProvider);
+  return api.getArtisanDashboard();
+});
 
 class ArtisanHomeScreen extends ConsumerWidget {
   const ArtisanHomeScreen({super.key});
@@ -14,15 +20,26 @@ class ArtisanHomeScreen extends ConsumerWidget {
     final user = auth?.user;
     final name = user?.fullName.isNotEmpty == true ? user!.fullName : 'Ramesh Sharma';
 
+    final dashAsync = ref.watch(artisanDashboardProvider);
+    final dash = dashAsync.valueOrNull;
+
+    final earningsStr = dash?['revenue_estimate'] != null
+        ? '₹ ${(dash!['revenue_estimate'] as num).toInt()}'
+        : '₹ 24,500';
+    final activeCount = dash?['active_listings']?.toString() ?? '12';
+    final viewsCount = dash?['total_views']?.toString() ?? '184';
+
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        child: RefreshIndicator(
+          onRefresh: () async => ref.invalidate(artisanDashboardProvider),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               // ── Top Greeting & Profile Row ─────────────────────────
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -130,9 +147,9 @@ class ArtisanHomeScreen extends ConsumerWidget {
                           ],
                         ),
                         const SizedBox(height: 10),
-                        const Text(
-                          '₹ 24,500',
-                          style: TextStyle(
+                        Text(
+                          earningsStr,
+                          style: const TextStyle(
                             fontSize: 34,
                             fontWeight: FontWeight.w800,
                             color: Colors.white,
@@ -142,18 +159,18 @@ class ArtisanHomeScreen extends ConsumerWidget {
                         const SizedBox(height: 18),
                         Row(
                           children: [
-                            const Column(
+                            Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  '12',
-                                  style: TextStyle(
+                                  activeCount,
+                                  style: const TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.w800,
                                     color: Colors.white,
                                   ),
                                 ),
-                                Text(
+                                const Text(
                                   'Active Listings',
                                   style: TextStyle(fontSize: 12, color: Colors.white60),
                                 ),
@@ -165,18 +182,18 @@ class ArtisanHomeScreen extends ConsumerWidget {
                               color: Colors.white24,
                               margin: const EdgeInsets.symmetric(horizontal: 24),
                             ),
-                            const Column(
+                            Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  '184',
-                                  style: TextStyle(
+                                  viewsCount,
+                                  style: const TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.w800,
                                     color: Colors.white,
                                   ),
                                 ),
-                                Text(
+                                const Text(
                                   'Catalog Views',
                                   style: TextStyle(fontSize: 12, color: Colors.white60),
                                 ),
@@ -387,8 +404,9 @@ class ArtisanHomeScreen extends ConsumerWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _ActionTile extends StatelessWidget {

@@ -4,6 +4,17 @@ import 'package:go_router/go_router.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 
+import '../../../core/network/api_client.dart';
+import '../../../shared/models/models.dart';
+
+final marketplaceProductsProvider = FutureProvider.autoDispose.family<List<ProductModel>, ({String? category, String? search})>((ref, arg) async {
+  final api = ref.read(apiClientProvider);
+  return api.getProducts(
+    category: arg.category == 'All' ? null : arg.category,
+    search: arg.search,
+  );
+});
+
 class BuyerMarketplaceScreen extends ConsumerStatefulWidget {
   const BuyerMarketplaceScreen({super.key});
 
@@ -73,6 +84,12 @@ class _BuyerMarketplaceScreenState extends ConsumerState<BuyerMarketplaceScreen>
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _searchCtrl.addListener(() => setState(() {}));
+  }
+
+  @override
   void dispose() {
     _searchCtrl.dispose();
     super.dispose();
@@ -80,6 +97,11 @@ class _BuyerMarketplaceScreenState extends ConsumerState<BuyerMarketplaceScreen>
 
   @override
   Widget build(BuildContext context) {
+    final productsAsync = ref.watch(marketplaceProductsProvider((
+      category: _selectedCategory,
+      search: _searchCtrl.text.trim().isEmpty ? null : _searchCtrl.text.trim(),
+    )));
+
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
       body: SafeArea(
@@ -217,32 +239,135 @@ class _BuyerMarketplaceScreenState extends ConsumerState<BuyerMarketplaceScreen>
 
               // ── 2-Column Product Grid ──────────────────────────────
               Expanded(
-                child: GridView.builder(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.only(bottom: 20),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: 0.65,
-                  ),
-                  itemCount: _demoProducts.length,
-                  itemBuilder: (context, index) {
-                    final p = _demoProducts[index];
-                    return _ProductGridCard(
-                      id: p['id'] as String,
-                      title: p['title'] as String,
-                      location: p['location'] as String,
-                      rating: (p['rating'] as num).toDouble(),
-                      reviews: p['reviews'] as int,
-                      retailPrice: p['retailPrice'] as int,
-                      bulkPrice: p['bulkPrice'] as int,
-                      moq: p['moq'] as int,
-                      hasGi: p['hasGi'] as bool,
-                      isSoldOut: p['isSoldOut'] as bool,
-                      imageUrl: p['imageUrl'] as String,
-                    );
+                child: RefreshIndicator(
+                  onRefresh: () async {
+                    ref.invalidate(marketplaceProductsProvider);
                   },
+                  child: productsAsync.when(
+                    data: (products) {
+                      if (products.isEmpty) {
+                        return GridView.builder(
+                          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                          padding: const EdgeInsets.only(bottom: 20),
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                            childAspectRatio: 0.65,
+                          ),
+                          itemCount: _demoProducts.length,
+                          itemBuilder: (context, index) {
+                            final p = _demoProducts[index];
+                            return _ProductGridCard(
+                              id: p['id'] as String,
+                              title: p['title'] as String,
+                              location: p['location'] as String,
+                              rating: (p['rating'] as num).toDouble(),
+                              reviews: p['reviews'] as int,
+                              retailPrice: p['retailPrice'] as int,
+                              bulkPrice: p['bulkPrice'] as int,
+                              moq: p['moq'] as int,
+                              hasGi: p['hasGi'] as bool,
+                              isSoldOut: p['isSoldOut'] as bool,
+                              imageUrl: p['imageUrl'] as String,
+                            );
+                          },
+                        );
+                      }
+
+                      return GridView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                        padding: const EdgeInsets.only(bottom: 20),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 0.65,
+                        ),
+                        itemCount: products.length,
+                        itemBuilder: (context, index) {
+                          final p = products[index];
+                          return _ProductGridCard(
+                            id: p.id,
+                            title: p.titleEn,
+                            location: p.region ?? p.state ?? 'India',
+                            rating: p.rating > 0 ? p.rating : 4.8,
+                            reviews: p.reviewCount > 0 ? p.reviewCount : 12,
+                            retailPrice: p.retailPrice.toInt(),
+                            bulkPrice: p.b2bPrice.toInt(),
+                            moq: p.moq > 0 ? p.moq : 10,
+                            hasGi: p.giTag,
+                            isSoldOut: p.status == 'Sold Out',
+                            imageUrl: (p.imageUrl != null && p.imageUrl!.isNotEmpty)
+                                ? p.imageUrl!
+                                : 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=600',
+                          );
+                        },
+                      );
+                    },
+                    loading: () => const Center(
+                      child: CircularProgressIndicator(color: AppColors.primary),
+                    ),
+                    error: (err, stack) {
+                      return Column(
+                        children: [
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 10),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEF3C7),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.cloud_off_rounded, size: 16, color: Color(0xFFD97706)),
+                                const SizedBox(width: 8),
+                                const Expanded(
+                                  child: Text(
+                                    'Offline demo mode — showing local catalog',
+                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF92400E)),
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () => ref.invalidate(marketplaceProductsProvider),
+                                  child: const Text('Retry', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Expanded(
+                            child: GridView.builder(
+                              physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                              padding: const EdgeInsets.only(bottom: 20),
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                                childAspectRatio: 0.65,
+                              ),
+                              itemCount: _demoProducts.length,
+                              itemBuilder: (context, index) {
+                                final p = _demoProducts[index];
+                                return _ProductGridCard(
+                                  id: p['id'] as String,
+                                  title: p['title'] as String,
+                                  location: p['location'] as String,
+                                  rating: (p['rating'] as num).toDouble(),
+                                  reviews: p['reviews'] as int,
+                                  retailPrice: p['retailPrice'] as int,
+                                  bulkPrice: p['bulkPrice'] as int,
+                                  moq: p['moq'] as int,
+                                  hasGi: p['hasGi'] as bool,
+                                  isSoldOut: p['isSoldOut'] as bool,
+                                  imageUrl: p['imageUrl'] as String,
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
                 ),
               ),
             ],

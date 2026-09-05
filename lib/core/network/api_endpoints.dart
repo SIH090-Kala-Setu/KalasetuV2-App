@@ -46,14 +46,21 @@ class ApiEndpoints {
     await prefs.remove(_kBackendUrlKey);
   }
 
+  static String get currentBaseUrl => getBaseUrlSync();
+
   static String _platformDefault() {
     if (kIsWeb) return 'http://127.0.0.1:8000';
     if (Platform.isAndroid) return 'http://10.0.2.2:8000';
     return 'http://127.0.0.1:8000'; // iOS, Windows, macOS, Linux
   }
 
-  /// Auto-fixes Android localhost → 10.0.2.2 mapping
+  /// Auto-fixes Android localhost → 10.0.2.2 mapping and ensures http protocol
   static String _normalizeUrl(String url) {
+    url = url.trim();
+    if (url.isEmpty) return _platformDefault();
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'http://$url';
+    }
     if (!kIsWeb && Platform.isAndroid) {
       url = url
           .replaceAll('localhost', '10.0.2.2')

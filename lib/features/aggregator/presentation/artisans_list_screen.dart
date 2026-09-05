@@ -124,14 +124,33 @@ class _ArtisansListScreenState extends ConsumerState<ArtisansListScreen> {
               label: 'Onboard Artisan',
               leadingIcon: Icons.person_add_rounded,
               onPressed: () async {
-                final api = ref.read(apiClientProvider);
-                await api.onboardArtisan(
-                  fullName: nameCtrl.text.trim(),
-                  phone: phoneCtrl.text.trim(),
-                  craftType: craftCtrl.text.trim(),
-                );
-                ref.invalidate(_artisansListProvider);
-                if (ctx.mounted) Navigator.pop(ctx);
+                try {
+                  final api = ref.read(apiClientProvider);
+                  await api.onboardArtisan(
+                    fullName: nameCtrl.text.trim(),
+                    phone: phoneCtrl.text.trim(),
+                    craftType: craftCtrl.text.trim(),
+                  );
+                  ref.invalidate(_artisansListProvider);
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('✓ Artisan onboarded successfully!'),
+                        backgroundColor: AppColors.success,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Failed to onboard: $e'),
+                        backgroundColor: AppColors.error,
+                      ),
+                    );
+                  }
+                }
               },
             )),
             const SizedBox(height: 20),

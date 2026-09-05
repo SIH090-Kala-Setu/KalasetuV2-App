@@ -40,7 +40,7 @@ dependencies:
 
   # Media
   image_picker: ^1.1.2
-  record: ^7.1.1
+  record: ^6.2.1
   just_audio: ^0.9.40
 
   # Permissions

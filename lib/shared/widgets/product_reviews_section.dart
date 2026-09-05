@@ -422,7 +422,11 @@ class _WriteReviewSheetState extends ConsumerState<_WriteReviewSheet> {
         isRecommended: _isRecommended,
       );
       if (mounted) {
-        widget.onSubmitted(review);
+        if (review != null) {
+          widget.onSubmitted(review);
+        } else {
+          throw Exception('Review response empty');
+        }
         Navigator.of(context).pop();
       }
     } catch (_) {

@@ -9,6 +9,7 @@ import '../../../core/utils/formatters.dart';
 import '../../../core/theme/theme_mode_notifier.dart';
 import '../../../shared/providers/auth_provider.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/server_config_dialog.dart';
 import '../../../shared/widgets/shimmer_loader.dart';
 import '../../../shared/widgets/status_badge.dart';
 
@@ -141,7 +142,7 @@ class ArtisanProfileScreen extends ConsumerWidget {
                     _SettingsTile(
                       icon: Icons.settings_rounded,
                       title: 'Server Configuration',
-                      onTap: () {},
+                      onTap: () => ServerConfigDialog.show(context),
                     ),
                     const SizedBox(height: 24),
                     AppButton.danger(
