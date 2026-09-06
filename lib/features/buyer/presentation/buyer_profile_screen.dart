@@ -1,6 +1,9 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
@@ -8,6 +11,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/theme_mode_notifier.dart';
 import '../../../shared/models/models.dart';
 import '../../../shared/providers/auth_provider.dart';
+import '../../../shared/widgets/app_avatar.dart';
 import '../../../shared/widgets/server_config_dialog.dart';
 import '../../../shared/widgets/app_button.dart';
 
@@ -37,13 +41,13 @@ class BuyerProfileScreen extends ConsumerWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      CircleAvatar(
+                      AppAvatar(
+                        photoUrl: user?.avatarUrl,
+                        name: user?.fullName,
                         radius: 40,
-                        backgroundColor: Colors.white.withValues(alpha: 0.15),
-                        child: Text(
-                          user?.fullName.isNotEmpty == true ? user!.fullName[0] : '?',
-                          style: const TextStyle(fontSize: 30, color: Colors.white, fontWeight: FontWeight.w700),
-                        ),
+                        backgroundColor: Colors.white.withValues(alpha: 0.2),
+                        textColor: Colors.white,
+                        fontSize: 30,
                       ),
                       const SizedBox(height: 10),
                       Text(user?.fullName ?? 'Buyer', style: AppTextStyles.headlineMedium.copyWith(color: Colors.white)),
@@ -226,6 +230,9 @@ class _EditBuyerProfileSheetState extends ConsumerState<_EditBuyerProfileSheet> 
     {'code': 'gu', 'label': 'Gujarati (ગુજરાતી)'},
   ];
 
+  late final TextEditingController _photoUrlController;
+  Uint8List? _pickedImageBytes;
+
   @override
   void initState() {
     super.initState();
@@ -234,6 +241,7 @@ class _EditBuyerProfileSheetState extends ConsumerState<_EditBuyerProfileSheet> 
     _phoneController = TextEditingController(text: widget.user?.phone ?? '');
     _stateController = TextEditingController(text: widget.user?.region ?? '');
     _districtController = TextEditingController(text: widget.user?.district ?? '');
+    _photoUrlController = TextEditingController(text: widget.user?.avatarUrl ?? '');
     _selectedLanguage = widget.user?.preferredLang ?? 'en';
     if (!_languages.any((l) => l['code'] == _selectedLanguage)) {
       _selectedLanguage = 'en';
@@ -247,7 +255,126 @@ class _EditBuyerProfileSheetState extends ConsumerState<_EditBuyerProfileSheet> 
     _phoneController.dispose();
     _stateController.dispose();
     _districtController.dispose();
+    _photoUrlController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: source,
+        maxWidth: 600,
+        maxHeight: 600,
+        imageQuality: 85,
+      );
+      if (picked != null) {
+        final bytes = await picked.readAsBytes();
+        final base64String = base64Encode(bytes);
+        final mimeType = picked.mimeType ?? 'image/jpeg';
+        final dataUri = 'data:$mimeType;base64,$base64String';
+        setState(() {
+          _photoUrlController.text = dataUri;
+          _pickedImageBytes = bytes;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not access image: $e')),
+        );
+      }
+    }
+  }
+
+  void _showImagePickerOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Text(
+                  'Buyer Profile Photo',
+                  style: AppTextStyles.headlineSmall.copyWith(
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                    fontSize: 18,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.buyerColor.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.photo_library_outlined, color: AppColors.buyerColor),
+                  ),
+                  title: const Text('Choose from Gallery / Files', style: TextStyle(fontWeight: FontWeight.w600)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickImage(ImageSource.gallery);
+                  },
+                ),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.buyerColor.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.camera_alt_outlined, color: AppColors.buyerColor),
+                  ),
+                  title: const Text('Take Photo with Camera', style: TextStyle(fontWeight: FontWeight.w600)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickImage(ImageSource.camera);
+                  },
+                ),
+                if (_photoUrlController.text.trim().isNotEmpty || _pickedImageBytes != null)
+                  ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.error.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.delete_outline, color: AppColors.error),
+                    ),
+                    title: const Text('Remove Photo', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w600)),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      setState(() {
+                        _photoUrlController.text = '';
+                        _pickedImageBytes = null;
+                      });
+                    },
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _saveProfile() async {
@@ -269,6 +396,8 @@ class _EditBuyerProfileSheetState extends ConsumerState<_EditBuyerProfileSheet> 
         'state': _stateController.text.trim(),
         'district': _districtController.text.trim(),
         'preferred_language': _selectedLanguage,
+        'photo_url': _photoUrlController.text.trim(),
+        'avatar_url': _photoUrlController.text.trim(),
       });
 
       ref.read(authProvider.notifier).updateUser(updatedUser);
@@ -327,17 +456,112 @@ class _EditBuyerProfileSheetState extends ConsumerState<_EditBuyerProfileSheet> 
             ),
             const SizedBox(height: 16),
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Icon(Icons.edit_rounded, color: AppColors.buyerColor, size: 22),
-                const SizedBox(width: 8),
-                Text(
-                  'Edit Buyer Profile',
-                  style: AppTextStyles.headlineSmall.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.buyerColor,
+                Row(
+                  children: [
+                    const Icon(Icons.edit_rounded, color: AppColors.buyerColor, size: 22),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Edit Buyer Profile',
+                      style: AppTextStyles.headlineSmall.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.buyerColor,
+                      ),
+                    ),
+                  ],
+                ),
+                IconButton(
+                  icon: Icon(
+                    Icons.close_rounded,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.darkTextSecondary
+                        : const Color(0xFF64748B),
+                    size: 24,
                   ),
+                  onPressed: () => Navigator.of(context).pop(),
+                  tooltip: 'Close',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
                 ),
               ],
+            ),
+            const SizedBox(height: 16),
+
+            // Avatar Selector Header
+            Center(
+              child: Column(
+                children: [
+                  GestureDetector(
+                    onTap: _showImagePickerOptions,
+                    child: Stack(
+                      children: [
+                        AppAvatar(
+                          imageBytes: _pickedImageBytes,
+                          photoUrl: _photoUrlController.text.trim(),
+                          name: _nameController.text.isNotEmpty ? _nameController.text : (widget.user?.fullName ?? ''),
+                          radius: 44,
+                          backgroundColor: AppColors.buyerColor.withValues(alpha: 0.15),
+                          textColor: AppColors.buyerColor,
+                          fontSize: 32,
+                          border: Border.all(color: AppColors.buyerColor, width: 2.5),
+                        ),
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: const BoxDecoration(
+                              color: AppColors.buyerColor,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.camera_alt_rounded, size: 16, color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: () => _pickImage(ImageSource.gallery),
+                        icon: const Icon(Icons.photo_library_outlined, size: 16),
+                        label: const Text('Upload Photo', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      OutlinedButton.icon(
+                        onPressed: () => _pickImage(ImageSource.camera),
+                        icon: const Icon(Icons.camera_alt_outlined, size: 16),
+                        label: const Text('Take Photo', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (_photoUrlController.text.trim().isNotEmpty || _pickedImageBytes != null) ...[
+                    const SizedBox(height: 4),
+                    TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _photoUrlController.text = '';
+                          _pickedImageBytes = null;
+                        });
+                      },
+                      icon: const Icon(Icons.close_rounded, size: 14, color: AppColors.error),
+                      label: const Text('Remove Photo', style: TextStyle(color: AppColors.error, fontSize: 12)),
+                      style: TextButton.styleFrom(padding: EdgeInsets.zero, visualDensity: VisualDensity.compact),
+                    ),
+                  ],
+                ],
+              ),
             ),
             const SizedBox(height: 18),
             _buildTextField(

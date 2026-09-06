@@ -1,7 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/router/route_names.dart';
@@ -12,6 +15,7 @@ import '../../../core/theme/theme_mode_notifier.dart';
 import '../../../shared/models/models.dart';
 import '../../../shared/providers/auth_provider.dart';
 import '../../../shared/providers/locale_provider.dart';
+import '../../../shared/widgets/app_avatar.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/server_config_dialog.dart';
 import '../../../shared/widgets/shimmer_loader.dart';
@@ -66,13 +70,13 @@ class ArtisanProfileScreen extends ConsumerWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         // Avatar
-                        CircleAvatar(
+                        AppAvatar(
+                          photoUrl: user?.avatarUrl,
+                          name: user?.fullName,
                           radius: 44,
                           backgroundColor: AppColors.accent.withValues(alpha: 0.2),
-                          child: Text(
-                            user?.fullName.isNotEmpty == true ? user!.fullName[0] : '?',
-                            style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w700, color: Colors.white),
-                          ),
+                          textColor: Colors.white,
+                          fontSize: 36,
                         ),
                         const SizedBox(height: 12),
                         Text(user?.fullName ?? 'Artisan',
@@ -268,6 +272,17 @@ void _showLanguagePicker(BuildContext context, WidgetRef ref) {
                       ],
                     ),
                   ),
+                  IconButton(
+                    icon: Icon(
+                      Icons.close_rounded,
+                      color: isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B),
+                      size: 24,
+                    ),
+                    onPressed: () => Navigator.of(context).pop(),
+                    tooltip: 'Close',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
@@ -378,10 +393,13 @@ class _EditArtisanProfileSheetState extends ConsumerState<_EditArtisanProfileShe
   late final TextEditingController _villageController;
   late final TextEditingController _experienceController;
   late final TextEditingController _bioController;
+  late final TextEditingController _photoUrlController;
   late String _selectedLanguage;
 
   bool _isSaving = false;
   String? _errorMessage;
+
+  Uint8List? _pickedImageBytes;
 
   static const _craftSuggestions = [
     'Banarasi Silk Handloom',
@@ -411,6 +429,7 @@ class _EditArtisanProfileSheetState extends ConsumerState<_EditArtisanProfileShe
       text: (u?.experienceYears != null && u!.experienceYears! > 0) ? u.experienceYears.toString() : '5',
     );
     _bioController = TextEditingController(text: u?.bio ?? '');
+    _photoUrlController = TextEditingController(text: u?.avatarUrl ?? '');
     _selectedLanguage = u?.preferredLang ?? 'hi';
   }
 
@@ -423,7 +442,126 @@ class _EditArtisanProfileSheetState extends ConsumerState<_EditArtisanProfileShe
     _villageController.dispose();
     _experienceController.dispose();
     _bioController.dispose();
+    _photoUrlController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: source,
+        maxWidth: 600,
+        maxHeight: 600,
+        imageQuality: 85,
+      );
+      if (picked != null) {
+        final bytes = await picked.readAsBytes();
+        final base64String = base64Encode(bytes);
+        final mimeType = picked.mimeType ?? 'image/jpeg';
+        final dataUri = 'data:$mimeType;base64,$base64String';
+        setState(() {
+          _photoUrlController.text = dataUri;
+          _pickedImageBytes = bytes;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not access image: $e')),
+        );
+      }
+    }
+  }
+
+  void _showImagePickerOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Text(
+                  'Profile Photo',
+                  style: AppTextStyles.headlineSmall.copyWith(
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                    fontSize: 18,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.photo_library_outlined, color: AppColors.primary),
+                  ),
+                  title: const Text('Choose from Gallery / Files', style: TextStyle(fontWeight: FontWeight.w600)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickImage(ImageSource.gallery);
+                  },
+                ),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.accent.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.camera_alt_outlined, color: AppColors.accent),
+                  ),
+                  title: const Text('Take Photo with Camera', style: TextStyle(fontWeight: FontWeight.w600)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickImage(ImageSource.camera);
+                  },
+                ),
+                if (_photoUrlController.text.trim().isNotEmpty || _pickedImageBytes != null)
+                  ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.error.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.delete_outline, color: AppColors.error),
+                    ),
+                    title: const Text('Remove Photo', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w600)),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      setState(() {
+                        _photoUrlController.text = '';
+                        _pickedImageBytes = null;
+                      });
+                    },
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _save() async {
@@ -445,6 +583,8 @@ class _EditArtisanProfileSheetState extends ConsumerState<_EditArtisanProfileShe
         'experience_years': int.tryParse(_experienceController.text.trim()) ?? 0,
         'bio': _bioController.text.trim(),
         'preferred_language': _selectedLanguage,
+        'photo_url': _photoUrlController.text.trim(),
+        'avatar_url': _photoUrlController.text.trim(),
       });
 
       ref.read(authProvider.notifier).updateUser(updatedUser);
@@ -512,22 +652,115 @@ class _EditArtisanProfileSheetState extends ConsumerState<_EditArtisanProfileShe
               ),
               const SizedBox(height: 16),
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Icon(Icons.palette_rounded, color: AppColors.primary, size: 24),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Edit Artisan Profile',
-                    style: AppTextStyles.headlineSmall.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.primary,
+                  Row(
+                    children: [
+                      const Icon(Icons.palette_rounded, color: AppColors.primary, size: 24),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Edit Artisan Profile',
+                        style: AppTextStyles.headlineSmall.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      Icons.close_rounded,
+                      color: isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B),
+                      size: 24,
                     ),
+                    onPressed: () => Navigator.of(context).pop(),
+                    tooltip: 'Close',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
                   ),
                 ],
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'Update your craft story and details visible to B2B buyers nationwide.',
-                style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                style: TextStyle(fontSize: 12, color: isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B)),
+              ),
+              const SizedBox(height: 16),
+
+              // Avatar Selection & Preview Header
+              Center(
+                child: Column(
+                  children: [
+                    GestureDetector(
+                      onTap: _showImagePickerOptions,
+                      child: Stack(
+                        children: [
+                          AppAvatar(
+                            imageBytes: _pickedImageBytes,
+                            photoUrl: _photoUrlController.text.trim(),
+                            name: _nameController.text.isNotEmpty ? _nameController.text : (widget.user?.fullName ?? ''),
+                            radius: 46,
+                            backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+                            textColor: AppColors.primary,
+                            fontSize: 34,
+                            border: Border.all(color: AppColors.accent, width: 2.5),
+                          ),
+                          Positioned(
+                            right: 0,
+                            bottom: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: const BoxDecoration(
+                                color: AppColors.accent,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.camera_alt_rounded, size: 16, color: Colors.white),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: () => _pickImage(ImageSource.gallery),
+                          icon: const Icon(Icons.photo_library_outlined, size: 16),
+                          label: const Text('Upload Photo', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        OutlinedButton.icon(
+                          onPressed: () => _pickImage(ImageSource.camera),
+                          icon: const Icon(Icons.camera_alt_outlined, size: 16),
+                          label: const Text('Take Photo', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (_photoUrlController.text.trim().isNotEmpty || _pickedImageBytes != null) ...[
+                      const SizedBox(height: 4),
+                      TextButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _photoUrlController.text = '';
+                            _pickedImageBytes = null;
+                          });
+                        },
+                        icon: const Icon(Icons.close_rounded, size: 14, color: AppColors.error),
+                        label: const Text('Remove Photo', style: TextStyle(color: AppColors.error, fontSize: 12)),
+                        style: TextButton.styleFrom(padding: EdgeInsets.zero, visualDensity: VisualDensity.compact),
+                      ),
+                    ],
+                  ],
+                ),
               ),
               if (_errorMessage != null) ...[
                 const SizedBox(height: 12),
@@ -884,6 +1117,17 @@ class _BankDetailsSheetState extends ConsumerState<_BankDetailsSheet> {
                                   ),
                                 ],
                               ),
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                Icons.close_rounded,
+                                color: isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B),
+                                size: 24,
+                              ),
+                              onPressed: () => Navigator.of(context).pop(),
+                              tooltip: 'Close',
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
                             ),
                           ],
                         ),

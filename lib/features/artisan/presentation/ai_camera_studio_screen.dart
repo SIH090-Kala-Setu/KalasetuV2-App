@@ -124,7 +124,7 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
         await _handleStudioBack();
       },
       child: Scaffold(
-        backgroundColor: AppColors.lightBackground,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),

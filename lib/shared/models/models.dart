@@ -68,13 +68,16 @@ class UserModel {
         district: json['district'] as String?,
         kycStatus: (json['kyc_status'] ?? json['kycStatus'] ?? (json['is_verified'] == true ? 'verified' : 'draft')).toString(),
         isVerified: json['is_verified'] as bool? ?? json['verified'] as bool? ?? false,
-        avatarUrl: json['avatar_url'] as String? ?? json['avatar'] as String?,
+        avatarUrl: json['avatar_url'] as String? ??
+            json['avatar'] as String? ??
+            json['photo_url'] as String? ??
+            (json['artisan_profile'] is Map ? json['artisan_profile']['photo_url'] as String? : null),
         clusterName: json['cluster_name'] as String? ??
             json['cluster'] as String? ??
             (json['artisan_profile'] is Map ? json['artisan_profile']['cluster_name'] as String? : null),
         experienceYears: (json['experience_years'] ?? json['experienceYears'] as num?)?.toInt(),
-        village: json['village'] as String?,
-        bio: json['bio'] as String?,
+        village: json['village'] as String? ?? (json['artisan_profile'] is Map ? json['artisan_profile']['village'] as String? : null),
+        bio: json['bio'] as String? ?? (json['artisan_profile'] is Map ? json['artisan_profile']['bio'] as String? : null),
         monthlyEarnings: (json['monthly_earnings'] ?? json['monthlyEarnings'] as num?)?.toDouble(),
         activeListings: (json['active_listings'] ?? json['activeListings'] as num?)?.toInt(),
         totalViews: (json['total_views'] ?? json['totalViews'] as num?)?.toInt(),
@@ -94,11 +97,58 @@ class UserModel {
         'kyc_status': kycStatus,
         'is_verified': isVerified,
         'avatar_url': avatarUrl,
+        'photo_url': avatarUrl,
         'cluster_name': clusterName,
         'experience_years': experienceYears,
         'village': village,
         'bio': bio,
       };
+
+  UserModel copyWith({
+    String? id,
+    String? username,
+    String? role,
+    String? fullName,
+    String? email,
+    String? phone,
+    String? preferredLang,
+    String? craftType,
+    String? region,
+    String? district,
+    String? kycStatus,
+    bool? isVerified,
+    String? avatarUrl,
+    String? clusterName,
+    int? experienceYears,
+    String? village,
+    String? bio,
+    double? monthlyEarnings,
+    int? activeListings,
+    int? totalViews,
+  }) {
+    return UserModel(
+      id: id ?? this.id,
+      username: username ?? this.username,
+      role: role ?? this.role,
+      fullName: fullName ?? this.fullName,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      preferredLang: preferredLang ?? this.preferredLang,
+      craftType: craftType ?? this.craftType,
+      region: region ?? this.region,
+      district: district ?? this.district,
+      kycStatus: kycStatus ?? this.kycStatus,
+      isVerified: isVerified ?? this.isVerified,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      clusterName: clusterName ?? this.clusterName,
+      experienceYears: experienceYears ?? this.experienceYears,
+      village: village ?? this.village,
+      bio: bio ?? this.bio,
+      monthlyEarnings: monthlyEarnings ?? this.monthlyEarnings,
+      activeListings: activeListings ?? this.activeListings,
+      totalViews: totalViews ?? this.totalViews,
+    );
+  }
 }
 
 // ── ProductModel ──────────────────────────────────────────────

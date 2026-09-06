@@ -103,8 +103,11 @@ class _BuyerMarketplaceScreenState extends ConsumerState<BuyerMarketplaceScreen>
       search: _searchCtrl.text.trim().isEmpty ? null : _searchCtrl.text.trim(),
     )));
 
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -113,16 +116,17 @@ class _BuyerMarketplaceScreenState extends ConsumerState<BuyerMarketplaceScreen>
             children: [
               const SizedBox(height: 10),
 
-              // ── Top Navy Banner Card ──────────────────────────────
+              // ── Top Banner Card ──────────────────────────────
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
+                  color: isDark ? AppColors.darkSurfaceVariant : AppColors.primary,
                   borderRadius: BorderRadius.circular(18),
+                  border: isDark ? Border.all(color: AppColors.darkBorder) : null,
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.25),
+                      color: isDark ? Colors.black26 : AppColors.primary.withValues(alpha: 0.25),
                       blurRadius: 14,
                       offset: const Offset(0, 4),
                     ),
@@ -142,7 +146,7 @@ class _BuyerMarketplaceScreenState extends ConsumerState<BuyerMarketplaceScreen>
                         ),
                       ),
                     ),
-                    const Column(
+                    Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
@@ -150,17 +154,17 @@ class _BuyerMarketplaceScreenState extends ConsumerState<BuyerMarketplaceScreen>
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
-                            color: Colors.white,
+                            color: isDark ? AppColors.darkTextPrimary : Colors.white,
                             letterSpacing: -0.2,
                           ),
                         ),
-                        SizedBox(height: 4),
+                        const SizedBox(height: 4),
                         Text(
                           'Zero intermediary markups · GI-certified authentic crafts',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
-                            color: Colors.white70,
+                            color: isDark ? AppColors.darkTextSecondary : Colors.white70,
                           ),
                         ),
                       ],
@@ -175,25 +179,42 @@ class _BuyerMarketplaceScreenState extends ConsumerState<BuyerMarketplaceScreen>
                 height: 48,
                 child: TextField(
                   controller: _searchCtrl,
-                  style: const TextStyle(fontSize: 14, color: AppColors.primary),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
+                  ),
                   decoration: InputDecoration(
                     hintText: 'Search crafts, regions, artisans...',
-                    hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
-                    prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF94A3B8), size: 20),
+                    hintStyle: TextStyle(
+                      color: isDark ? AppColors.darkTextSecondary.withValues(alpha: 0.6) : const Color(0xFF94A3B8),
+                      fontSize: 13,
+                    ),
+                    prefixIcon: Icon(
+                      Icons.search_rounded,
+                      color: isDark ? AppColors.darkTextSecondary : const Color(0xFF94A3B8),
+                      size: 20,
+                    ),
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: isDark ? AppColors.darkSurface : Colors.white,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      borderSide: BorderSide(
+                        color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
+                      ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      borderSide: BorderSide(
+                        color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
+                      ),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                      borderSide: BorderSide(
+                        color: isDark ? AppColors.accent : AppColors.primary,
+                        width: 1.5,
+                      ),
                     ),
                   ),
                 ),
@@ -216,10 +237,14 @@ class _BuyerMarketplaceScreenState extends ConsumerState<BuyerMarketplaceScreen>
                           duration: const Duration(milliseconds: 160),
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
                           decoration: BoxDecoration(
-                            color: isSelected ? AppColors.primary : Colors.white,
+                            color: isSelected
+                                ? (isDark ? AppColors.accent : AppColors.primary)
+                                : (isDark ? AppColors.darkSurface : Colors.white),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: isSelected ? AppColors.primary : const Color(0xFFE2E8F0),
+                              color: isSelected
+                                  ? (isDark ? AppColors.accent : AppColors.primary)
+                                  : (isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0)),
                             ),
                           ),
                           child: Text(
@@ -227,7 +252,9 @@ class _BuyerMarketplaceScreenState extends ConsumerState<BuyerMarketplaceScreen>
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
-                              color: isSelected ? Colors.white : const Color(0xFF64748B),
+                              color: isSelected
+                                  ? (isDark ? Colors.black : Colors.white)
+                                  : (isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B)),
                             ),
                           ),
                         ),
@@ -408,16 +435,25 @@ class _ProductGridCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return InkWell(
       onTap: () => context.push(RouteNames.productDetail(id)),
       borderRadius: BorderRadius.circular(16),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? AppColors.darkSurface : Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-          boxShadow: const [
-            BoxShadow(color: Color(0x06000000), blurRadius: 8, offset: Offset(0, 2)),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: isDark ? Colors.black26 : const Color(0x06000000),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
           ],
         ),
         child: Column(
@@ -443,20 +479,24 @@ class _ProductGridCard extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFD1FAE5),
+                        color: isDark ? const Color(0xFF064E3B) : const Color(0xFFD1FAE5),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.shield_outlined, size: 12, color: Color(0xFF047857)),
-                          SizedBox(width: 3),
+                          Icon(
+                            Icons.shield_outlined,
+                            size: 12,
+                            color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF047857),
+                          ),
+                          const SizedBox(width: 3),
                           Text(
                             'GI',
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFF047857),
+                              color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF047857),
                             ),
                           ),
                         ],
@@ -500,10 +540,10 @@ class _ProductGridCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.primary,
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
                       height: 1.25,
                     ),
                     maxLines: 1,
@@ -514,14 +554,18 @@ class _ProductGridCard extends StatelessWidget {
                   // Location
                   Row(
                     children: [
-                      const Icon(Icons.location_on_outlined, size: 12, color: Color(0xFF8A94A6)),
+                      Icon(
+                        Icons.location_on_outlined,
+                        size: 12,
+                        color: isDark ? AppColors.darkTextSecondary : const Color(0xFF8A94A6),
+                      ),
                       const SizedBox(width: 2),
                       Text(
                         location,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
-                          color: Color(0xFF8A94A6),
+                          color: isDark ? AppColors.darkTextSecondary : const Color(0xFF8A94A6),
                         ),
                       ),
                     ],
@@ -535,18 +579,18 @@ class _ProductGridCard extends StatelessWidget {
                       const SizedBox(width: 2),
                       Text(
                         '$rating',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
+                          color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
                         ),
                       ),
                       const SizedBox(width: 2),
                       Text(
                         '($reviews)',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
-                          color: Color(0xFF8A94A6),
+                          color: isDark ? AppColors.darkTextSecondary : const Color(0xFF8A94A6),
                         ),
                       ),
                     ],
@@ -559,18 +603,18 @@ class _ProductGridCard extends StatelessWidget {
                       children: [
                         TextSpan(
                           text: '₹$retailPrice ',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.primary,
+                            color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
                           ),
                         ),
-                        const TextSpan(
+                        TextSpan(
                           text: 'Retail',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
-                            color: Color(0xFF8A94A6),
+                            color: isDark ? AppColors.darkTextSecondary : const Color(0xFF8A94A6),
                           ),
                         ),
                       ],
@@ -583,7 +627,7 @@ class _ProductGridCard extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFFD97706),
+                      color: Color(0xFFF5A623),
                     ),
                   ),
                 ],

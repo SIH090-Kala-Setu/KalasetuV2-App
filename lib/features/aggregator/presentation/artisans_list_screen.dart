@@ -111,8 +111,20 @@ class _ArtisansListScreenState extends ConsumerState<ArtisansListScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.lightBorder, borderRadius: BorderRadius.circular(2)))),
-            const SizedBox(height: 20),
-            const Text('Onboard New Artisan', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Onboard New Artisan', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, size: 24),
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  tooltip: 'Close',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ],
+            ),
             const SizedBox(height: 16),
             AppTextField(controller: nameCtrl, label: 'Full Name', prefixIcon: Icons.person_outline),
             const SizedBox(height: 12),

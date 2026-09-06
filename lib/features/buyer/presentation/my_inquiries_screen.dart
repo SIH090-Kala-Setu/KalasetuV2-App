@@ -54,7 +54,7 @@ class MyInquiriesScreen extends ConsumerWidget {
     final inquiriesAsync = ref.watch(buyerInquiriesProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 18),

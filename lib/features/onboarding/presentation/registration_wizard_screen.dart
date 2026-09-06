@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/theme_mode_notifier.dart';
 import '../../../shared/providers/auth_provider.dart';
 
 class RegistrationWizardScreen extends ConsumerStatefulWidget {
@@ -44,47 +45,77 @@ class _RegistrationWizardScreenState extends ConsumerState<RegistrationWizardScr
     super.dispose();
   }
 
+  void _handleBack() {
+    if (_part > 0) {
+      setState(() => _part--);
+    } else if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go(RouteNames.onboardingRole);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     if (_part == 3) {
       return _buildSuccessScreen();
     }
 
-    return Scaffold(
-      backgroundColor: AppColors.lightBackground,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 12),
-              // Top Bar: Back arrow + Step 4 of 4 · Part X/4
-              Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_rounded, color: AppColors.primary, size: 22),
-                    onPressed: () {
-                      if (_part > 0) {
-                        setState(() => _part--);
-                      } else {
-                        context.pop();
-                      }
-                    },
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                  const SizedBox(width: 14),
-                  Text(
-                    'Step 4 of 4 · Part ${_part + 1}/4',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF8A94A6),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _handleBack();
+      },
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 12),
+                // Top Bar: Back arrow + Step 4 of 4 · Part X/4 + Dark/Light Toggle
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(
+                            Icons.arrow_back_rounded,
+                            color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
+                            size: 22,
+                          ),
+                          onPressed: _handleBack,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                        const SizedBox(width: 14),
+                        Text(
+                          'Step 4 of 4 · Part ${_part + 1}/4',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? AppColors.darkTextSecondary : const Color(0xFF8A94A6),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
+                    IconButton(
+                      icon: Icon(
+                        isDark ? Icons.light_mode_rounded : Icons.dark_mode_outlined,
+                        color: isDark ? AppColors.accent : AppColors.primary,
+                        size: 22,
+                      ),
+                      tooltip: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
+                      onPressed: () => ref.read(themeModeProvider.notifier).toggleLightDark(),
+                    ),
+                  ],
+                ),
               const SizedBox(height: 16),
 
               // 4 Segment Progress Bars
@@ -96,7 +127,9 @@ class _RegistrationWizardScreenState extends ConsumerState<RegistrationWizardScr
                       height: 4,
                       margin: EdgeInsets.only(right: index < 3 ? 6 : 0),
                       decoration: BoxDecoration(
-                        color: isFilled ? AppColors.primary : const Color(0xFFE2E8F0),
+                        color: isFilled
+                            ? (isDark ? AppColors.accent : AppColors.primary)
+                            : (isDark ? AppColors.darkSurfaceVariant : const Color(0xFFE2E8F0)),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -110,9 +143,9 @@ class _RegistrationWizardScreenState extends ConsumerState<RegistrationWizardScr
                 child: ListView(
                   padding: EdgeInsets.zero,
                   children: [
-                    if (_part == 0) ..._buildPersonalStep(),
-                    if (_part == 1) ..._buildCraftStep(),
-                    if (_part == 2) ..._buildKycStep(),
+                    if (_part == 0) ..._buildPersonalStep(isDark),
+                    if (_part == 1) ..._buildCraftStep(isDark),
+                    if (_part == 2) ..._buildKycStep(isDark),
                   ],
                 ),
               ),
@@ -126,31 +159,41 @@ class _RegistrationWizardScreenState extends ConsumerState<RegistrationWizardScr
                   child: ElevatedButton(
                     onPressed: _isSubmitting ? null : _handleNextPart,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
+                      backgroundColor: isDark ? AppColors.accent : AppColors.primary,
+                      foregroundColor: isDark ? Colors.black : Colors.white,
+                      disabledBackgroundColor: isDark ? AppColors.darkSurfaceVariant : const Color(0xFF94A3B8),
+                      disabledForegroundColor: isDark ? AppColors.darkTextSecondary : Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
                     child: _isSubmitting
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 22,
                             height: 22,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            child: CircularProgressIndicator(
+                              color: isDark ? Colors.black : Colors.white,
+                              strokeWidth: 2,
+                            ),
                           )
                         : Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
                                 _part == 2 ? 'Submit for Verification' : 'Continue',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
+                                  color: isDark ? Colors.black : Colors.white,
                                 ),
                               ),
                               const SizedBox(width: 6),
-                              const Icon(Icons.chevron_right_rounded, size: 22),
+                              Icon(
+                                Icons.chevron_right_rounded,
+                                size: 22,
+                                color: isDark ? Colors.black : Colors.white,
+                              ),
                             ],
                           ),
                   ),
@@ -160,115 +203,132 @@ class _RegistrationWizardScreenState extends ConsumerState<RegistrationWizardScr
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
-  List<Widget> _buildPersonalStep() {
+  List<Widget> _buildPersonalStep(bool isDark) {
     return [
-      const Text(
+      Text(
         'Personal Details',
         style: TextStyle(
           fontSize: 26,
           fontWeight: FontWeight.w800,
-          color: AppColors.primary,
+          color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
           letterSpacing: -0.5,
         ),
       ),
       const SizedBox(height: 4),
-      const Text(
+      Text(
         'Tell us a bit about yourself',
-        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF8A94A6)),
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: isDark ? AppColors.darkTextSecondary : const Color(0xFF8A94A6),
+        ),
       ),
       const SizedBox(height: 24),
-      _buildFormField('Full Name', _fullNameCtrl, 'e.g. Ramesh Sharma'),
+      _buildFormField('Full Name', _fullNameCtrl, 'e.g. Ramesh Sharma', isDark),
       const SizedBox(height: 16),
-      _buildFormField('Username', _usernameCtrl, 'e.g. ramesh_weaver'),
+      _buildFormField('Username', _usernameCtrl, 'e.g. ramesh_weaver', isDark),
     ];
   }
 
-  List<Widget> _buildCraftStep() {
+  List<Widget> _buildCraftStep(bool isDark) {
     return [
-      const Text(
+      Text(
         'Craft & Location',
         style: TextStyle(
           fontSize: 26,
           fontWeight: FontWeight.w800,
-          color: AppColors.primary,
+          color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
           letterSpacing: -0.5,
         ),
       ),
       const SizedBox(height: 4),
-      const Text(
+      Text(
         'Where do you practice your craft?',
-        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF8A94A6)),
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: isDark ? AppColors.darkTextSecondary : const Color(0xFF8A94A6),
+        ),
       ),
       const SizedBox(height: 24),
-      _buildFormField('Craft Specialization', _craftTypeCtrl, 'e.g. Banarasi Silk Weaving'),
+      _buildFormField('Craft Specialization', _craftTypeCtrl, 'e.g. Banarasi Silk Weaving', isDark),
       const SizedBox(height: 16),
-      _buildFormField('State / Region', _regionCtrl, 'e.g. Uttar Pradesh'),
+      _buildFormField('State / Region', _regionCtrl, 'e.g. Uttar Pradesh', isDark),
       const SizedBox(height: 16),
       Row(
         children: [
-          Expanded(child: _buildFormField('District', _districtCtrl, 'Varanasi')),
+          Expanded(child: _buildFormField('District', _districtCtrl, 'Varanasi', isDark)),
           const SizedBox(width: 12),
-          Expanded(child: _buildFormField('Village / Town', _villageCtrl, 'Madanpura')),
+          Expanded(child: _buildFormField('Village / Town', _villageCtrl, 'Madanpura', isDark)),
         ],
       ),
     ];
   }
 
-  List<Widget> _buildKycStep() {
+  List<Widget> _buildKycStep(bool isDark) {
     return [
-      const Text(
+      Text(
         'Identity & Bank KYC',
         style: TextStyle(
           fontSize: 26,
           fontWeight: FontWeight.w800,
-          color: AppColors.primary,
+          color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
           letterSpacing: -0.5,
         ),
       ),
       const SizedBox(height: 4),
-      const Text(
+      Text(
         'Secure banking details for payouts',
-        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF8A94A6)),
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: isDark ? AppColors.darkTextSecondary : const Color(0xFF8A94A6),
+        ),
       ),
       const SizedBox(height: 24),
-      _buildFormField('Aadhaar Number', _aadhaarCtrl, '•••• •••• 1234'),
+      _buildFormField('Aadhaar Number', _aadhaarCtrl, '•••• •••• 1234', isDark),
       const SizedBox(height: 6),
-      const Row(
+      Row(
         children: [
-          Icon(Icons.shield_outlined, size: 14, color: Color(0xFF64748B)),
-          SizedBox(width: 4),
+          const Icon(Icons.shield_outlined, size: 14, color: Color(0xFF10B981)),
+          const SizedBox(width: 4),
           Text(
             'Masked for your privacy',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF64748B)),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B),
+            ),
           ),
         ],
       ),
       const SizedBox(height: 16),
-      _buildFormField('Bank Account Number', _bankAccountCtrl, '•••• •••• 5678'),
+      _buildFormField('Bank Account Number', _bankAccountCtrl, '•••• •••• 5678', isDark),
       const SizedBox(height: 16),
       Row(
         children: [
-          Expanded(child: _buildFormField('IFSC Code', _ifscCtrl, 'SBIN0001234')),
+          Expanded(child: _buildFormField('IFSC Code', _ifscCtrl, 'SBIN0001234', isDark)),
           const SizedBox(width: 12),
-          Expanded(child: _buildFormField('UPI ID', _upiCtrl, 'ramesh@upi')),
+          Expanded(child: _buildFormField('UPI ID', _upiCtrl, 'ramesh@upi', isDark)),
         ],
       ),
     ];
   }
 
-  Widget _buildFormField(String label, TextEditingController controller, String hint) {
+  Widget _buildFormField(String label, TextEditingController controller, String hint, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: AppColors.primary,
+            color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
           ),
         ),
         const SizedBox(height: 6),
@@ -276,28 +336,38 @@ class _RegistrationWizardScreenState extends ConsumerState<RegistrationWizardScr
           height: 50,
           child: TextField(
             controller: controller,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,
-              color: AppColors.primary,
+              color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
             ),
             decoration: InputDecoration(
               hintText: hint,
-              hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
+              hintStyle: TextStyle(
+                color: isDark ? AppColors.darkTextSecondary.withValues(alpha: 0.6) : const Color(0xFF94A3B8),
+                fontSize: 14,
+              ),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: isDark ? AppColors.darkSurface : Colors.white,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                borderSide: BorderSide(
+                  color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
+                ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                borderSide: BorderSide(
+                  color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
+                ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                borderSide: BorderSide(
+                  color: isDark ? AppColors.accent : AppColors.primary,
+                  width: 1.5,
+                ),
               ),
             ),
           ),
@@ -339,8 +409,11 @@ class _RegistrationWizardScreenState extends ConsumerState<RegistrationWizardScr
   }
 
   Widget _buildSuccessScreen() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -362,26 +435,26 @@ class _RegistrationWizardScreenState extends ConsumerState<RegistrationWizardScr
               ),
               const SizedBox(height: 24),
 
-              const Text(
+              Text(
                 'Registration Submitted!',
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.primary,
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
                   letterSpacing: -0.5,
                 ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 10),
 
-              const Text(
+              Text(
                 'Your application is under review by MoSJE. You can now access your dashboard and explore features.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
                   height: 1.4,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF64748B),
+                  color: isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B),
                 ),
               ),
               const SizedBox(height: 36),

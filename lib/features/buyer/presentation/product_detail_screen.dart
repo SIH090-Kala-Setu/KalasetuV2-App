@@ -9,6 +9,7 @@ import '../../../shared/models/models.dart';
 import '../../../shared/providers/auth_provider.dart';
 import '../../../shared/widgets/product_thumbnail.dart';
 import '../../../shared/widgets/product_reviews_section.dart';
+import '../../../shared/widgets/app_avatar.dart';
 
 final productDetailProvider = FutureProvider.autoDispose.family<ProductModel, String>((ref, id) async {
   final api = ref.read(apiClientProvider);
@@ -66,23 +67,34 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
             ? 'This exquisite dupatta is handwoven on a traditional pit loom in the lanes of Varanasi. Master weaver Ramesh Sharma uses pure mulberry silk threads and real zari to create intricate floral jaal patterns passed down through four generations. The natural dyeing process uses indigo and madder roots, ensuring skin-friendly, sustainable color.'
             : 'यह उत्कृष्ट दुपट्टा वाराणसी की गलियों में पारंपरिक गड्ढा करघे पर हाथ से बुना गया है। मास्टर बुनकर रमेश शर्मा चार पीढ़ियों से चली आ रही जटिल पुष्प जाल पैटर्न बनाने के लिए शुद्ध शहतूत रेशम के धागे और असली ज़री का उपयोग करते हैं। प्राकृतिक रंगाई प्रक्रिया में नील और मजीठ की जड़ों का उपयोग किया जाता है।');
 
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B);
+    final surface = isDark ? AppColors.darkSurface : Colors.white;
+    final border = isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0);
+    final surfaceVariant = isDark ? AppColors.darkSurfaceVariant : const Color(0xFFF1F5F9);
+
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: surface,
         elevation: 0,
-        leading: const SizedBox.shrink(),
-        title: const Text(
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_rounded, color: textPrimary),
+          onPressed: () => context.pop(),
+        ),
+        title: Text(
           'Product Details',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w800,
-            color: AppColors.primary,
+            color: textPrimary,
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.close_rounded, color: Color(0xFF8A94A6)),
+            icon: Icon(Icons.close_rounded, color: textSecondary),
             onPressed: () => context.pop(),
           ),
         ],
@@ -116,10 +128,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       Expanded(
                         child: Text(
                           title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.primary,
+                            color: textPrimary,
                             height: 1.3,
                           ),
                         ),
@@ -162,19 +174,19 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       const SizedBox(width: 4),
                       Text(
                         rating.toStringAsFixed(1),
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.primary),
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: textPrimary),
                       ),
                       const SizedBox(width: 4),
                       Text(
                         '($reviewCount reviews)',
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF8A94A6)),
+                        style: TextStyle(fontSize: 12, color: textSecondary),
                       ),
                       const SizedBox(width: 12),
-                      const Icon(Icons.location_on_outlined, size: 14, color: Color(0xFF8A94A6)),
+                      Icon(Icons.location_on_outlined, size: 14, color: textSecondary),
                       const SizedBox(width: 2),
                       Text(
                         location,
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF8A94A6)),
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: textSecondary),
                       ),
                     ],
                   ),
@@ -185,13 +197,13 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                     width: double.infinity,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
+                      color: surfaceVariant,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
                       children: [
-                        _buildLangBtn('English'),
-                        _buildLangBtn('हिंदी'),
+                        _buildLangBtn('English', isDark),
+                        _buildLangBtn('हिंदी', isDark),
                       ],
                     ),
                   ),
@@ -200,10 +212,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   // Description Text
                   Text(
                     desc,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       height: 1.5,
-                      color: Color(0xFF64748B),
+                      color: textSecondary,
                     ),
                   ),
                   const SizedBox(height: 18),
@@ -212,48 +224,43 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: surface,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      border: Border.all(color: border),
                     ),
                     child: Row(
                       children: [
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            image: DecorationImage(
-                              image: NetworkImage('https://images.unsplash.com/photo-1544717305-2782549b5136?w=150'),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
+                        AppAvatar(
+                          photoUrl: null,
+                          name: artisanName,
+                          radius: 24,
+                          backgroundColor: AppColors.primary.withValues(alpha: 0.15),
                         ),
                         const SizedBox(width: 12),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
                                 children: [
                                   Text(
-                                    'Ramesh Sharma',
+                                    artisanName,
                                     style: TextStyle(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w800,
-                                      color: AppColors.primary,
+                                      color: textPrimary,
                                     ),
                                   ),
-                                  SizedBox(width: 4),
-                                  Icon(Icons.check_circle_rounded, size: 14, color: Color(0xFF10B981)),
+                                  const SizedBox(width: 4),
+                                  const Icon(Icons.check_circle_rounded, size: 14, color: Color(0xFF10B981)),
                                 ],
                               ),
-                              SizedBox(height: 2),
+                              const SizedBox(height: 2),
                               Text(
-                                '22 years exp · Madanpura',
+                                '$artisanCraft • $location',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Color(0xFF8A94A6),
+                                  color: textSecondary,
                                 ),
                               ),
                             ],
@@ -284,23 +291,23 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: surface,
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      border: Border.all(color: border),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Row(
+                        Row(
                           children: [
-                            Icon(Icons.calculate_outlined, color: Color(0xFFD97706), size: 20),
-                            SizedBox(width: 8),
+                            const Icon(Icons.calculate_outlined, color: Color(0xFFD97706), size: 20),
+                            const SizedBox(width: 8),
                             Text(
                               'Bulk Procurement Calculator',
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w800,
-                                color: AppColors.primary,
+                                color: textPrimary,
                               ),
                             ),
                           ],
@@ -311,9 +318,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
+                            Text(
                               'Quantity',
-                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textSecondary),
                             ),
                             Row(
                               children: [
@@ -322,17 +329,19 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                   onTap: () {
                                     if (_quantity > 1) setState(() => _quantity -= 1);
                                   },
+                                  isDark: isDark,
                                 ),
                                 Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 16),
                                   child: Text(
                                     '$_quantity',
-                                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.primary),
+                                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: textPrimary),
                                   ),
                                 ),
                                 _buildCalcBtn(
                                   icon: Icons.add,
                                   onTap: () => setState(() => _quantity += 1),
+                                  isDark: isDark,
                                 ),
                               ],
                             ),
@@ -341,36 +350,36 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                         const SizedBox(height: 14),
 
                         // Tier Rows
-                        _buildTierRow('10+ pcs', '25% off · ₹900/pc', isActive: _quantity >= 10 && _quantity < 20),
+                        _buildTierRow('10+ pcs', '25% off · ₹900/pc', isActive: _quantity >= 10 && _quantity < 20, isDark: isDark),
                         const SizedBox(height: 6),
-                        _buildTierRow('20+ pcs', '30% off · ₹840/pc', isActive: _quantity >= 20 && _quantity < 50),
+                        _buildTierRow('20+ pcs', '30% off · ₹840/pc', isActive: _quantity >= 20 && _quantity < 50, isDark: isDark),
                         const SizedBox(height: 6),
-                        _buildTierRow('50+ pcs', '35% off · ₹780/pc', isActive: _quantity >= 50),
+                        _buildTierRow('50+ pcs', '35% off · ₹780/pc', isActive: _quantity >= 50, isDark: isDark),
                         const SizedBox(height: 16),
 
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('Unit Price', style: TextStyle(fontSize: 13, color: Color(0xFF64748B))),
-                            Text('₹$_unitPrice', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.primary)),
+                            Text('Unit Price', style: TextStyle(fontSize: 13, color: textSecondary)),
+                            Text('₹$_unitPrice', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: textPrimary)),
                           ],
                         ),
                         const SizedBox(height: 6),
-                        const Row(
+                        Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('Lead Time', style: TextStyle(fontSize: 13, color: Color(0xFF64748B))),
-                            Text('7 days', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.primary)),
+                            Text('Lead Time', style: TextStyle(fontSize: 13, color: textSecondary)),
+                            Text('7 days', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: textPrimary)),
                           ],
                         ),
                         const SizedBox(height: 8),
-                        const Divider(color: Color(0xFFE2E8F0)),
+                        Divider(color: border),
                         const SizedBox(height: 8),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('Total', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.primary)),
-                            Text('₹$_totalPrice', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.primary)),
+                            Text('Total', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: textPrimary)),
+                            Text('₹$_totalPrice', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.accent)),
                           ],
                         ),
                       ],
@@ -379,57 +388,54 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   const SizedBox(height: 18),
 
                   // ── Materials Chips ────────────────────────────────────
-                  const Text(
+                  Text(
                     'MATERIALS',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF8A94A6),
+                      color: textSecondary,
                       letterSpacing: 0.8,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Wrap(
+                  Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      _MaterialChip(label: 'Pure Mulberry Silk'),
-                      _MaterialChip(label: 'Real Zari Thread'),
-                      _MaterialChip(label: 'Natural Dyes'),
+                      _MaterialChip(label: 'Pure Mulberry Silk', isDark: isDark),
+                      _MaterialChip(label: 'Real Zari Thread', isDark: isDark),
+                      _MaterialChip(label: 'Natural Dyes', isDark: isDark),
                     ],
                   ),
+                  const SizedBox(height: 18),
+
                   // ── Artisan Profile Card ──────────────────────────────
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: surface,
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.03),
-                          blurRadius: 10,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
+                      border: Border.all(color: border),
+                      boxShadow: isDark
+                          ? []
+                          : [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.03),
+                                blurRadius: 10,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            CircleAvatar(
+                            AppAvatar(
+                              name: artisanName,
                               radius: 24,
-                              backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                              child: Text(
-                                (artisanName.isNotEmpty ? artisanName[0] : 'A').toUpperCase(),
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.primary,
-                                ),
-                              ),
+                              backgroundColor: AppColors.primary.withValues(alpha: 0.15),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -441,10 +447,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                       Flexible(
                                         child: Text(
                                           artisanName,
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 15,
                                             fontWeight: FontWeight.w800,
-                                            color: AppColors.primary,
+                                            color: textPrimary,
                                           ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
@@ -457,10 +463,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                   const SizedBox(height: 2),
                                   Text(
                                     '$artisanCraft • $location',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w500,
-                                      color: Color(0xFF64748B),
+                                      color: textSecondary,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -471,7 +477,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                           ],
                         ),
                         const SizedBox(height: 14),
-                        const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                        Divider(height: 1, color: border),
                         const SizedBox(height: 12),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -497,11 +503,11 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                     : 'artisan';
                                 context.push(RouteNames.artisanPortfolio(targetId));
                               },
-                              icon: const Text(
+                              icon: Text(
                                 'View Portfolio',
-                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.primary),
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: textPrimary),
                               ),
-                              label: const Icon(Icons.arrow_forward_rounded, size: 14, color: AppColors.primary),
+                              label: Icon(Icons.arrow_forward_rounded, size: 14, color: textPrimary),
                               style: TextButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                 minimumSize: Size.zero,
@@ -520,31 +526,31 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: surface,
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      border: Border.all(color: border),
                     ),
-                    child: const Column(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.workspace_premium_outlined, color: Color(0xFF10B981), size: 20),
-                            SizedBox(width: 8),
+                            const Icon(Icons.workspace_premium_outlined, color: Color(0xFF10B981), size: 20),
+                            const SizedBox(width: 8),
                             Text(
                               'Authenticity & Certification',
-                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.primary),
+                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: textPrimary),
                             ),
                           ],
                         ),
-                        SizedBox(height: 12),
-                        _AuthCheckItem('GI Tag Certified by Geographical Indications Registry'),
-                        SizedBox(height: 8),
-                        _AuthCheckItem('MoSJE Registered Artisan'),
-                        SizedBox(height: 8),
-                        _AuthCheckItem('Natural Dyes — No Chemical Colorants'),
-                        SizedBox(height: 8),
-                        _AuthCheckItem('Handwoven — No Machine Production'),
+                        const SizedBox(height: 12),
+                        _AuthCheckItem('GI Tag Certified by Geographical Indications Registry', isDark: isDark),
+                        const SizedBox(height: 8),
+                        _AuthCheckItem('MoSJE Registered Artisan', isDark: isDark),
+                        const SizedBox(height: 8),
+                        _AuthCheckItem('Natural Dyes — No Chemical Colorants', isDark: isDark),
+                        const SizedBox(height: 8),
+                        _AuthCheckItem('Handwoven — No Machine Production', isDark: isDark),
                       ],
                     ),
                   ),
@@ -561,9 +567,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
           // ── Sticky Bottom CTA Button ──────────────────────────────
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+            decoration: BoxDecoration(
+              color: surface,
+              border: Border(top: BorderSide(color: border)),
             ),
             child: SizedBox(
               width: double.infinity,
@@ -626,17 +632,20 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
     );
   }
 
-  Widget _buildLangBtn(String label) {
+  Widget _buildLangBtn(String label, bool isDark) {
     final isSelected = _language == label;
+    final surface = isDark ? AppColors.darkSurface : Colors.white;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+
     return Expanded(
       child: GestureDetector(
         onTap: () => setState(() => _language = label),
         child: Container(
           margin: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: isSelected ? Colors.white : Colors.transparent,
+            color: isSelected ? surface : Colors.transparent,
             borderRadius: BorderRadius.circular(9),
-            boxShadow: isSelected
+            boxShadow: isSelected && !isDark
                 ? const [BoxShadow(color: Color(0x0A000000), blurRadius: 4, offset: Offset(0, 2))]
                 : [],
           ),
@@ -646,7 +655,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                color: isSelected ? AppColors.primary : const Color(0xFF8A94A6),
+                color: isSelected ? textPrimary : const Color(0xFF8A94A6),
               ),
             ),
           ),
@@ -655,7 +664,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
     );
   }
 
-  Widget _buildCalcBtn({required IconData icon, required VoidCallback onTap}) {
+  Widget _buildCalcBtn({required IconData icon, required VoidCallback onTap, required bool isDark}) {
+    final bg = isDark ? AppColors.darkSurfaceVariant : const Color(0xFFF1F5F9);
+    final fg = isDark ? AppColors.darkTextPrimary : AppColors.primary;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
@@ -663,25 +675,31 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
         width: 34,
         height: 34,
         decoration: BoxDecoration(
-          color: const Color(0xFFF1F5F9),
+          color: bg,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Center(
-          child: Icon(icon, color: AppColors.primary, size: 18),
+          child: Icon(icon, color: fg, size: 18),
         ),
       ),
     );
   }
 
-  Widget _buildTierRow(String pcs, String price, {required bool isActive}) {
+  Widget _buildTierRow(String pcs, String price, {required bool isActive, required bool isDark}) {
+    final activeBg = isDark ? const Color(0xFF451A03) : const Color(0xFFFEF9EE);
+    final inactiveBg = isDark ? AppColors.darkSurfaceVariant : const Color(0xFFF8FAFC);
+    final activeBorder = isDark ? const Color(0xFFB45309) : const Color(0xFFFDE68A);
+    final inactiveBorder = isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0);
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.primary;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: isActive ? const Color(0xFFFEF9EE) : const Color(0xFFF8FAFC),
+        color: isActive ? activeBg : inactiveBg,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: isActive ? const Color(0xFFFDE68A) : const Color(0xFFE2E8F0),
+          color: isActive ? activeBorder : inactiveBorder,
         ),
       ),
       child: Row(
@@ -692,7 +710,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
             style: TextStyle(
               fontSize: 13,
               fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
-              color: isActive ? const Color(0xFF92400E) : const Color(0xFF64748B),
+              color: isActive ? const Color(0xFFF59E0B) : const Color(0xFF64748B),
             ),
           ),
           Text(
@@ -700,7 +718,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w800,
-              color: isActive ? const Color(0xFF92400E) : AppColors.primary,
+              color: isActive ? const Color(0xFFF59E0B) : textPrimary,
             ),
           ),
         ],
@@ -711,19 +729,24 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
 
 class _MaterialChip extends StatelessWidget {
   final String label;
-  const _MaterialChip({required this.label});
+  final bool isDark;
+  const _MaterialChip({required this.label, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
+        color: isDark ? AppColors.darkSurfaceVariant : const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         label,
-        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: isDark ? AppColors.darkTextPrimary : const Color(0xFF334155),
+        ),
       ),
     );
   }
@@ -731,7 +754,8 @@ class _MaterialChip extends StatelessWidget {
 
 class _AuthCheckItem extends StatelessWidget {
   final String text;
-  const _AuthCheckItem(this.text);
+  final bool isDark;
+  const _AuthCheckItem(this.text, {required this.isDark});
 
   @override
   Widget build(BuildContext context) {
@@ -743,7 +767,11 @@ class _AuthCheckItem extends StatelessWidget {
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: isDark ? AppColors.darkTextPrimary : const Color(0xFF334155),
+            ),
           ),
         ),
       ],

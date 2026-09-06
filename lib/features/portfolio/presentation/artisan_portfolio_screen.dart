@@ -8,6 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/models/models.dart';
+import '../../../shared/widgets/app_avatar.dart';
 import '../../../shared/widgets/product_thumbnail.dart';
 import '../../../shared/widgets/status_badge.dart';
 
@@ -79,13 +80,13 @@ class _ArtisanPortfolioScreenState extends ConsumerState<ArtisanPortfolioScreen>
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            CircleAvatar(
+                            AppAvatar(
+                              photoUrl: user?.avatarUrl,
+                              name: user?.fullName,
                               radius: 48,
                               backgroundColor: AppColors.accent.withValues(alpha: 0.2),
-                              child: Text(
-                                user?.fullName.isNotEmpty == true ? user!.fullName[0] : '?',
-                                style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w700, color: Colors.white),
-                              ),
+                              textColor: Colors.white,
+                              fontSize: 36,
                             ),
                             const SizedBox(height: 12),
                             Text(user?.fullName ?? 'Artisan', style: AppTextStyles.headlineLarge.copyWith(color: Colors.white)),

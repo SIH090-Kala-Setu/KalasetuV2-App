@@ -6,6 +6,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/theme_mode_notifier.dart';
 import '../../../shared/providers/auth_provider.dart';
 
 class OtpVerificationScreen extends ConsumerStatefulWidget {
@@ -111,63 +112,99 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
     }
   }
 
+  void _handleBack() {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go(RouteNames.onboardingPhone, extra: widget.role);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.lightBackground,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: _isPhoneVerified ? _buildVerifiedView() : _buildOtpEntryView(),
+    final theme = Theme.of(context);
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _handleBack();
+      },
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: _isPhoneVerified ? _buildVerifiedView() : _buildOtpEntryView(),
+          ),
         ),
       ),
     );
   }
 
   Widget _buildOtpEntryView() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 12),
-        // Top Bar: Back arrow + Step 3 of 4
+        // Top Bar: Back arrow + Step 3 of 4 + Dark/Light Toggle
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            IconButton(
-              icon: const Icon(Icons.arrow_back_rounded, color: AppColors.primary, size: 22),
-              onPressed: () => context.pop(),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
+            Row(
+              children: [
+                IconButton(
+                  icon: Icon(
+                    Icons.arrow_back_rounded,
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
+                    size: 22,
+                  ),
+                  onPressed: _handleBack,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+                const SizedBox(width: 14),
+                Text(
+                  'Step 3 of 4',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? AppColors.darkTextSecondary : const Color(0xFF8A94A6),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 14),
-            const Text(
-              'Step 3 of 4',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF8A94A6),
+            IconButton(
+              icon: Icon(
+                isDark ? Icons.light_mode_rounded : Icons.dark_mode_outlined,
+                color: isDark ? AppColors.accent : AppColors.primary,
+                size: 22,
               ),
+              tooltip: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
+              onPressed: () => ref.read(themeModeProvider.notifier).toggleLightDark(),
             ),
           ],
         ),
         const SizedBox(height: 20),
 
         // Title & Subtitle
-        const Text(
+        Text(
           'Enter OTP',
           style: TextStyle(
             fontSize: 26,
             fontWeight: FontWeight.w800,
-            color: AppColors.primary,
+            color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
             letterSpacing: -0.5,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           'Sent to ${widget.phone.isNotEmpty ? widget.phone : "+91 1234567890"}',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: Color(0xFF8A94A6),
+            color: isDark ? AppColors.darkTextSecondary : const Color(0xFF8A94A6),
           ),
         ),
         const SizedBox(height: 24),
@@ -185,27 +222,34 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                 keyboardType: TextInputType.number,
                 textAlign: TextAlign.center,
                 maxLength: 1,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.primary,
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
                 ),
                 decoration: InputDecoration(
                   counterText: '',
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: isDark ? AppColors.darkSurface : Colors.white,
                   contentPadding: EdgeInsets.zero,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                    borderSide: BorderSide(
+                      color: isDark ? AppColors.darkBorder : const Color(0xFFCBD5E1),
+                    ),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                    borderSide: BorderSide(
+                      color: isDark ? AppColors.darkBorder : const Color(0xFFCBD5E1),
+                    ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                    borderSide: BorderSide(
+                      color: isDark ? AppColors.accent : AppColors.primary,
+                      width: 2,
+                    ),
                   ),
                 ),
                 onChanged: (val) {
@@ -224,13 +268,27 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
         ),
         if (_isVerifying) ...[
           const SizedBox(height: 16),
-          const Center(
+          Center(
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
-                SizedBox(width: 10),
-                Text('Verifying OTP with server...', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary)),
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: isDark ? AppColors.accent : AppColors.primary,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Verifying OTP with server...',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
+                  ),
+                ),
               ],
             ),
           ),
@@ -242,21 +300,21 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
           child: _canResend
               ? TextButton(
                   onPressed: _resendOtp,
-                  child: const Text(
+                  child: Text(
                     'Resend OTP',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.primary,
+                      color: isDark ? AppColors.accent : AppColors.primary,
                     ),
                   ),
                 )
               : Text(
                   'Resend OTP in ${_secondsLeft}s',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF8A94A6),
+                    color: isDark ? AppColors.darkTextSecondary : const Color(0xFF8A94A6),
                   ),
                 ),
         ),
@@ -295,6 +353,9 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
   }
 
   Widget _buildVerifiedView() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Column(
       children: [
         const Spacer(flex: 2),
@@ -318,12 +379,12 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
         const SizedBox(height: 24),
 
         // Phone Verified! Title
-        const Text(
+        Text(
           'Phone Verified!',
           style: TextStyle(
             fontSize: 26,
             fontWeight: FontWeight.w800,
-            color: AppColors.primary,
+            color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
             letterSpacing: -0.5,
           ),
         ),
@@ -335,18 +396,18 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
           child: Text(
             'Your number ${widget.phone.isNotEmpty ? widget.phone : "+91 1234567890"} has been verified successfully.',
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               height: 1.4,
               fontWeight: FontWeight.w500,
-              color: Color(0xFF64748B),
+              color: isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B),
             ),
           ),
         ),
 
         const SizedBox(height: 36),
 
-        // Complete Registration Button (Navy)
+        // Complete Registration Button
         SizedBox(
           width: double.infinity,
           height: 54,
@@ -359,14 +420,14 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
               },
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
+              backgroundColor: isDark ? AppColors.accent : AppColors.primary,
+              foregroundColor: isDark ? Colors.black : Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
               ),
             ),
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
@@ -374,10 +435,15 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
+                    color: isDark ? Colors.black : Colors.white,
                   ),
                 ),
-                SizedBox(width: 6),
-                Icon(Icons.chevron_right_rounded, size: 22),
+                const SizedBox(width: 6),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 22,
+                  color: isDark ? Colors.black : Colors.white,
+                ),
               ],
             ),
           ),

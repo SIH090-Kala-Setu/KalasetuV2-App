@@ -5,6 +5,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/providers/auth_provider.dart';
+import '../../../shared/widgets/app_avatar.dart';
 
 final artisanDashboardProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
   final api = ref.read(apiClientProvider);
@@ -29,8 +30,13 @@ class ArtisanHomeScreen extends ConsumerWidget {
     final activeCount = dash?['active_listings']?.toString() ?? '12';
     final viewsCount = dash?['total_views']?.toString() ?? '184';
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final surface = isDark ? AppColors.darkSurface : Colors.white;
+    final border = isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0);
+
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async => ref.invalidate(artisanDashboardProvider),
@@ -50,10 +56,10 @@ class ArtisanHomeScreen extends ConsumerWidget {
                     children: [
                       Text(
                         'नमस्ते, $name 🙏',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
-                          color: AppColors.primary,
+                          color: textPrimary,
                           letterSpacing: -0.4,
                         ),
                       ),
@@ -83,16 +89,13 @@ class ArtisanHomeScreen extends ConsumerWidget {
                     ],
                   ),
                   // User Avatar
-                  Container(
-                    width: 46,
-                    height: 46,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
+                  GestureDetector(
+                    onTap: () => context.push(RouteNames.artisanProfile),
+                    child: AppAvatar(
+                      photoUrl: user?.avatarUrl,
+                      name: user?.fullName,
+                      radius: 23,
                       border: Border.all(color: const Color(0xFFF5A623), width: 2),
-                      image: const DecorationImage(
-                        image: NetworkImage('https://images.unsplash.com/photo-1544717305-2782549b5136?w=150'),
-                        fit: BoxFit.cover,
-                      ),
                     ),
                   ),
                 ],
@@ -278,12 +281,12 @@ class ArtisanHomeScreen extends ConsumerWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Recent B2B Inquiries',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.primary,
+                      color: textPrimary,
                     ),
                   ),
                   TextButton(
@@ -331,22 +334,22 @@ class ArtisanHomeScreen extends ConsumerWidget {
               const SizedBox(height: 24),
 
               // ── MoSJE Welfare Schemes ──────────────────────────────
-              const Text(
+              Text(
                 'MoSJE Welfare Schemes',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.primary,
+                  color: textPrimary,
                 ),
               ),
               const SizedBox(height: 12),
 
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: surface,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                  boxShadow: const [
+                  border: Border.all(color: border),
+                  boxShadow: isDark ? [] : const [
                     BoxShadow(color: Color(0x06000000), blurRadius: 10, offset: Offset(0, 3)),
                   ],
                 ),
@@ -426,6 +429,11 @@ class _ActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surface = isDark ? AppColors.darkSurface : Colors.white;
+    final border = isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0);
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(18),
@@ -433,10 +441,10 @@ class _ActionTile extends StatelessWidget {
         height: 130,
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: surface,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-          boxShadow: const [
+          border: Border.all(color: border),
+          boxShadow: isDark ? [] : const [
             BoxShadow(color: Color(0x06000000), blurRadius: 10, offset: Offset(0, 3)),
           ],
         ),
@@ -459,10 +467,10 @@ class _ActionTile extends StatelessWidget {
                 ),
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
+                    color: textPrimary,
                     height: 1.25,
                   ),
                   maxLines: 2,
@@ -511,13 +519,20 @@ class _InquiryActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surface = isDark ? AppColors.darkSurface : Colors.white;
+    final border = isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0);
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B);
+    final iconBg = isDark ? AppColors.darkSurfaceVariant : const Color(0xFFF1F5F9);
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: const [
+        border: Border.all(color: border),
+        boxShadow: isDark ? [] : const [
           BoxShadow(color: Color(0x04000000), blurRadius: 8, offset: Offset(0, 2)),
         ],
       ),
@@ -528,11 +543,11 @@ class _InquiryActionCard extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
+              color: iconBg,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Center(
-              child: Icon(Icons.chat_bubble_outline_rounded, color: Color(0xFF64748B), size: 20),
+            child: Center(
+              child: Icon(Icons.chat_bubble_outline_rounded, color: textSecondary, size: 20),
             ),
           ),
           const SizedBox(width: 12),
@@ -542,19 +557,19 @@ class _InquiryActionCard extends StatelessWidget {
               children: [
                 Text(
                   buyerName,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.primary,
+                    color: textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   description,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF64748B),
+                    color: textSecondary,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -610,6 +625,10 @@ class _SchemeItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B);
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -621,19 +640,19 @@ class _SchemeItem extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.primary,
+                    color: textPrimary,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   description,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF64748B),
+                    color: textSecondary,
                     height: 1.35,
                   ),
                   maxLines: 2,

@@ -63,7 +63,7 @@ class _ArtisanCatalogueScreenState extends ConsumerState<ArtisanCatalogueScreen>
     final productsAsync = ref.watch(artisanProductsProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -838,17 +838,29 @@ class _EditProductSheetState extends ConsumerState<_EditProductSheet> {
               ),
             ),
             const SizedBox(height: 16),
-            const Row(
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Icon(Icons.edit_note_rounded, color: AppColors.primary, size: 24),
-                SizedBox(width: 8),
-                Text(
-                  'Edit Product',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.primary,
-                  ),
+                const Row(
+                  children: [
+                    Icon(Icons.edit_note_rounded, color: AppColors.primary, size: 24),
+                    SizedBox(width: 8),
+                    Text(
+                      'Edit Product',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, size: 24),
+                  onPressed: () => Navigator.of(context).pop(),
+                  tooltip: 'Close',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
                 ),
               ],
             ),

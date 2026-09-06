@@ -386,13 +386,37 @@ class ApiClient {
   // ── Artisan ───────────────────────────────────────────────────
 
   Future<Map<String, dynamic>> getArtisanDashboard() async {
-    final response = await _dio.get(ApiEndpoints.artisanDashboard);
-    return response.data as Map<String, dynamic>;
+    try {
+      final response = await _dio.get(ApiEndpoints.artisanDashboard);
+      if (response.data is Map<String, dynamic>) {
+        return response.data as Map<String, dynamic>;
+      }
+      return {};
+    } catch (e) {
+      return {
+        'total_listings': 0,
+        'active_listings': 0,
+        'pending_listings': 0,
+        'total_views': 0,
+        'total_inquiries': 0,
+        'pending_inquiries': 0,
+        'revenue_estimate': 0,
+        'unread_notifications': 0,
+        'top_products': [],
+      };
+    }
   }
 
   Future<Map<String, dynamic>> getArtisanProfile() async {
-    final response = await _dio.get(ApiEndpoints.artisanProfile);
-    return response.data as Map<String, dynamic>;
+    try {
+      final response = await _dio.get(ApiEndpoints.artisanProfile);
+      if (response.data is Map<String, dynamic>) {
+        return response.data as Map<String, dynamic>;
+      }
+      return {};
+    } catch (_) {
+      return {};
+    }
   }
 
   Future<UserModel> updateArtisanProfile(Map<String, dynamic> data) async {

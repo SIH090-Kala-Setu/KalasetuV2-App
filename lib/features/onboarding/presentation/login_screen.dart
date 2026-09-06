@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/theme_mode_notifier.dart';
 import '../../../shared/providers/auth_provider.dart';
 import '../../../shared/widgets/server_config_dialog.dart';
 
@@ -25,160 +26,231 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
+  void _handleBack() {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go(RouteNames.onboardingLanguage);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final isLoading = authState.isLoading;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: AppColors.lightBackground,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back_rounded, color: AppColors.primary, size: 22),
-                      onPressed: () => context.pop(),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.settings_suggest_rounded, color: AppColors.primary, size: 24),
-                      tooltip: 'Server Settings',
-                      onPressed: () => ServerConfigDialog.show(context),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ],
-                ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _handleBack();
+      },
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          Icons.arrow_back_rounded,
+                          color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
+                          size: 22,
+                        ),
+                        onPressed: _handleBack,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: Icon(
+                              isDark ? Icons.light_mode_rounded : Icons.dark_mode_outlined,
+                              color: isDark ? AppColors.accent : AppColors.primary,
+                              size: 22,
+                            ),
+                            tooltip: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
+                            onPressed: () => ref.read(themeModeProvider.notifier).toggleLightDark(),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: Icon(
+                              Icons.settings_suggest_rounded,
+                              color: isDark ? AppColors.accent : AppColors.primary,
+                              size: 24,
+                            ),
+                            tooltip: 'Server Settings',
+                            onPressed: () => ServerConfigDialog.show(context),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 const SizedBox(height: 24),
 
                 // Center Icon + Header
                 Center(
                   child: Column(
-                    children: [
-                      Container(
-                        width: 72,
-                        height: 72,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.2),
-                              blurRadius: 16,
-                              offset: const Offset(0, 6),
-                            ),
-                          ],
-                        ),
-                        child: const Center(
-                          child: Icon(Icons.auto_awesome, color: AppColors.accent, size: 36),
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      const Text(
-                        'Welcome Back',
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.primary,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'Login to your कलाSetu account',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF8A94A6),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                // Username field
-                const Text(
-                  'Username',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.primary),
-                ),
-                const SizedBox(height: 6),
-                TextFormField(
-                  controller: _usernameCtrl,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.primary),
-                  decoration: _inputDecoration('e.g. artisan_ramesh', Icons.person_outline),
-                  validator: (v) => (v == null || v.isEmpty) ? 'Username required' : null,
-                ),
-                const SizedBox(height: 18),
-
-                // Password field
-                const Text(
-                  'Password',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.primary),
-                ),
-                const SizedBox(height: 6),
-                TextFormField(
-                  controller: _passwordCtrl,
-                  obscureText: true,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.primary),
-                  decoration: _inputDecoration('••••••••', Icons.lock_outline),
-                  validator: (v) => (v == null || v.isEmpty) ? 'Password required' : null,
-                ),
-                const SizedBox(height: 28),
-
-                // Login Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 54,
-                  child: ElevatedButton(
-                    onPressed: isLoading ? null : _login,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    ),
-                    child: isLoading
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                          )
-                        : const Text(
-                            'Login',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                      children: [
+                        Container(
+                          width: 72,
+                          height: 72,
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.darkSurface : AppColors.primary,
+                            borderRadius: BorderRadius.circular(20),
+                            border: isDark ? Border.all(color: AppColors.darkBorder) : null,
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primary.withValues(alpha: 0.2),
+                                blurRadius: 16,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
                           ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Register Link
-                Center(
-                  child: TextButton(
-                    onPressed: () => context.go(RouteNames.onboardingLanguage),
-                    child: const Text(
-                      'New user? Register here',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF64748B),
-                      ),
+                          child: const Center(
+                            child: Icon(Icons.auto_awesome, color: AppColors.accent, size: 36),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        Text(
+                          'Welcome Back',
+                          style: TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w800,
+                            color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Login to your कलाSetu account',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: isDark ? AppColors.darkTextSecondary : const Color(0xFF8A94A6),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
+                  const SizedBox(height: 32),
 
-                const SizedBox(height: 24),
-              ],
+                  // Username field
+                  Text(
+                    'Username',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: _usernameCtrl,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
+                    ),
+                    decoration: _inputDecoration('e.g. artisan_ramesh', Icons.person_outline, isDark),
+                    validator: (v) => (v == null || v.isEmpty) ? 'Username required' : null,
+                  ),
+                  const SizedBox(height: 18),
+
+                  // Password field
+                  Text(
+                    'Password',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: _passwordCtrl,
+                    obscureText: true,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
+                    ),
+                    decoration: _inputDecoration('••••••••', Icons.lock_outline, isDark),
+                    validator: (v) => (v == null || v.isEmpty) ? 'Password required' : null,
+                  ),
+                  const SizedBox(height: 28),
+
+                  // Login Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: ElevatedButton(
+                      onPressed: isLoading ? null : _login,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isDark ? AppColors.accent : AppColors.primary,
+                        foregroundColor: isDark ? Colors.black87 : Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      child: isLoading
+                          ? SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(color: isDark ? Colors.black87 : Colors.white, strokeWidth: 2),
+                            )
+                          : const Text(
+                              'Login',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Footer Switch to Register
+                  Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'New to कलाSetu? ',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () => context.go(RouteNames.onboardingLanguage),
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: const Text(
+                            'Register Now',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.accent,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
             ),
           ),
         ),
@@ -186,25 +258,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  InputDecoration _inputDecoration(String hint, IconData icon) {
+  InputDecoration _inputDecoration(String hint, IconData icon, bool isDark) {
     return InputDecoration(
       hintText: hint,
       hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
       prefixIcon: Icon(icon, color: const Color(0xFF94A3B8), size: 20),
       filled: true,
-      fillColor: Colors.white,
+      fillColor: isDark ? AppColors.darkSurfaceVariant : Colors.white,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        borderSide: BorderSide(color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        borderSide: BorderSide(color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+        borderSide: BorderSide(color: isDark ? AppColors.accent : AppColors.primary, width: 1.5),
       ),
     );
   }
