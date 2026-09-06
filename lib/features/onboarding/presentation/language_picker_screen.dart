@@ -112,7 +112,13 @@ class LanguagePickerScreen extends ConsumerWidget {
                   child: ElevatedButton(
                     onPressed: () async {
                       await ref.read(localeProvider.notifier).setLocale(selected);
-                      if (context.mounted) context.go(RouteNames.onboardingRole);
+                      if (context.mounted) {
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.go(RouteNames.onboardingRole);
+                        }
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,

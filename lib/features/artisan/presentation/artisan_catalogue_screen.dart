@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -250,11 +251,227 @@ class _CatalogueCard extends ConsumerStatefulWidget {
 
 class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
   late int _stock;
+  late String _titleEn;
+  late String _titleHi;
+  late int _price;
+  late String _status;
 
   @override
   void initState() {
     super.initState();
     _stock = widget.initialStock;
+    _titleEn = widget.titleEn;
+    _titleHi = widget.titleHi;
+    _price = widget.price;
+    _status = widget.status;
+  }
+
+  @override
+  void didUpdateWidget(covariant _CatalogueCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialStock != widget.initialStock) _stock = widget.initialStock;
+    if (oldWidget.titleEn != widget.titleEn) _titleEn = widget.titleEn;
+    if (oldWidget.titleHi != widget.titleHi) _titleHi = widget.titleHi;
+    if (oldWidget.price != widget.price) _price = widget.price;
+    if (oldWidget.status != widget.status) _status = widget.status;
+  }
+
+  Color _getStatusTextColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'active':
+        return const Color(0xFF047857);
+      case 'sold out':
+        return const Color(0xFFDC2626);
+      case 'draft':
+        return const Color(0xFFD97706);
+      case 'pending review':
+        return const Color(0xFF2563EB);
+      default:
+        return const Color(0xFF64748B);
+    }
+  }
+
+  Color _getStatusBgColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'active':
+        return const Color(0xFFD1FAE5);
+      case 'sold out':
+        return const Color(0xFFFEE2E2);
+      case 'draft':
+        return const Color(0xFFFEF3C7);
+      case 'pending review':
+        return const Color(0xFFDBEAFE);
+      default:
+        return const Color(0xFFF1F5F9);
+    }
+  }
+
+  void _showProductQrModal(BuildContext context) {
+    final productId = widget.id ?? 'p1';
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          child: Padding(
+            padding: const EdgeInsets.all(22),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Product QR Code',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.pop(dialogContext),
+                      splashRadius: 20,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  _titleEn,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF334155),
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '₹$_price • Authenticated Artisan Craft',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: FutureBuilder<Uint8List>(
+                    future: ref.read(apiClientProvider).getProductQr(productId),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const SizedBox(
+                          width: 190,
+                          height: 190,
+                          child: Center(
+                            child: CircularProgressIndicator(color: AppColors.primary),
+                          ),
+                        );
+                      }
+                      if (snapshot.hasError || !snapshot.hasData) {
+                        return const SizedBox(
+                          width: 190,
+                          height: 190,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.qr_code_rounded, size: 56, color: Color(0xFF94A3B8)),
+                              SizedBox(height: 8),
+                              Text(
+                                'Could not load QR code',
+                                style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                      return ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.memory(
+                          snapshot.data!,
+                          width: 190,
+                          height: 190,
+                          fit: BoxFit.contain,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  'Scan to view authentic artisan catalog listing on KalaSetu.',
+                  style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(dialogContext);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Product QR Code ready for sharing!')),
+                      );
+                    },
+                    icon: const Icon(Icons.share_outlined, size: 18),
+                    label: const Text('Share Listing'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showEditProductModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => _EditProductSheet(
+        id: widget.id,
+        initialTitleEn: _titleEn,
+        initialTitleHi: _titleHi,
+        initialPrice: _price,
+        initialStock: _stock,
+        initialStatus: _status,
+        onUpdated: (titleEn, titleHi, price, stock, status) {
+          setState(() {
+            _titleEn = titleEn;
+            _titleHi = titleHi;
+            _price = price;
+            _stock = stock;
+            _status = status;
+          });
+          ref.invalidate(artisanProductsProvider);
+        },
+      ),
+    );
   }
 
   @override
@@ -295,7 +512,7 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
                   children: [
                     Expanded(
                       child: Text(
-                        widget.titleEn,
+                        _titleEn,
                         style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
@@ -327,7 +544,7 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  widget.titleHi,
+                  _titleHi,
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
@@ -341,7 +558,7 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      '₹${widget.price}',
+                      '₹$_price',
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
@@ -351,15 +568,15 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFD1FAE5),
+                        color: _getStatusBgColor(_status),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
-                        widget.status,
-                        style: const TextStyle(
+                        _status,
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF047857),
+                          color: _getStatusTextColor(_status),
                         ),
                       ),
                     ),
@@ -386,7 +603,7 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
                           onTap: () async {
                             if (_stock > 0) {
                               setState(() => _stock--);
-                              if (widget.id != null) {
+                              if (widget.id != null && !widget.id!.startsWith('p')) {
                                 try {
                                   final api = ref.read(apiClientProvider);
                                   await api.updateProductStock(widget.id!, _stock);
@@ -410,7 +627,7 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
                           icon: Icons.add,
                           onTap: () async {
                             setState(() => _stock++);
-                            if (widget.id != null) {
+                            if (widget.id != null && !widget.id!.startsWith('p')) {
                               try {
                                 final api = ref.read(apiClientProvider);
                                 await api.updateProductStock(widget.id!, _stock);
@@ -424,18 +641,14 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
                 ),
                 const SizedBox(height: 14),
 
-                // Actions: Edit Price and QR button
+                // Actions: Edit Product and QR button
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Opening price edit modal...')),
-                          );
-                        },
-                        icon: const Icon(Icons.sell_outlined, size: 16),
-                        label: const Text('Edit Price'),
+                        onPressed: () => _showEditProductModal(context),
+                        icon: const Icon(Icons.edit_outlined, size: 16),
+                        label: const Text('Edit Product'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.primary,
                           side: const BorderSide(color: AppColors.primary, width: 1.2),
@@ -448,11 +661,7 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
                     ),
                     const SizedBox(width: 10),
                     InkWell(
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Generating verifiable product QR Code...')),
-                        );
-                      },
+                      onTap: () => _showProductQrModal(context),
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
                         width: 48,
@@ -489,6 +698,255 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
         ),
         child: Center(
           child: Icon(icon, size: 16, color: AppColors.primary),
+        ),
+      ),
+    );
+  }
+}
+
+class _EditProductSheet extends ConsumerStatefulWidget {
+  final String? id;
+  final String initialTitleEn;
+  final String initialTitleHi;
+  final int initialPrice;
+  final int initialStock;
+  final String initialStatus;
+  final void Function(String titleEn, String titleHi, int price, int stock, String status) onUpdated;
+
+  const _EditProductSheet({
+    this.id,
+    required this.initialTitleEn,
+    required this.initialTitleHi,
+    required this.initialPrice,
+    required this.initialStock,
+    required this.initialStatus,
+    required this.onUpdated,
+  });
+
+  @override
+  ConsumerState<_EditProductSheet> createState() => _EditProductSheetState();
+}
+
+class _EditProductSheetState extends ConsumerState<_EditProductSheet> {
+  late final TextEditingController _titleEnController;
+  late final TextEditingController _titleHiController;
+  late final TextEditingController _priceController;
+  late final TextEditingController _stockController;
+  late String _status;
+  bool _isLoading = false;
+
+  static const _statusOptions = ['Active', 'Draft', 'Sold Out', 'Pending Review', 'Archived'];
+
+  @override
+  void initState() {
+    super.initState();
+    _titleEnController = TextEditingController(text: widget.initialTitleEn);
+    _titleHiController = TextEditingController(text: widget.initialTitleHi);
+    _priceController = TextEditingController(text: widget.initialPrice.toString());
+    _stockController = TextEditingController(text: widget.initialStock.toString());
+    _status = _statusOptions.contains(widget.initialStatus) ? widget.initialStatus : 'Active';
+  }
+
+  @override
+  void dispose() {
+    _titleEnController.dispose();
+    _titleHiController.dispose();
+    _priceController.dispose();
+    _stockController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveProduct() async {
+    final titleEn = _titleEnController.text.trim();
+    if (titleEn.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Product title cannot be empty.')),
+      );
+      return;
+    }
+
+    final price = int.tryParse(_priceController.text.trim()) ?? widget.initialPrice;
+    final stock = int.tryParse(_stockController.text.trim()) ?? widget.initialStock;
+    final titleHi = _titleHiController.text.trim();
+
+    setState(() => _isLoading = true);
+    try {
+      if (widget.id != null && widget.id!.isNotEmpty && !widget.id!.startsWith('p')) {
+        final api = ref.read(apiClientProvider);
+        await api.updateProduct(widget.id!, {
+          'title_en': titleEn,
+          'title_hi': titleHi.isNotEmpty ? titleHi : titleEn,
+          'base_price': price,
+          'retail_price': price,
+          'stock_count': stock,
+          'status': _status,
+        });
+      }
+
+      widget.onUpdated(titleEn, titleHi.isNotEmpty ? titleHi : titleEn, price, stock, _status);
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Product updated successfully!'),
+            backgroundColor: Color(0xFF047857),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update product: $e'),
+            backgroundColor: Colors.red.shade700,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    return Container(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 20,
+        bottom: 20 + bottomInset,
+      ),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade400,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Row(
+              children: [
+                Icon(Icons.edit_note_rounded, color: AppColors.primary, size: 24),
+                SizedBox(width: 8),
+                Text(
+                  'Edit Product',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            TextField(
+              controller: _titleEnController,
+              decoration: InputDecoration(
+                labelText: 'Title (English) *',
+                prefixIcon: const Icon(Icons.title_rounded, color: AppColors.primary),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              ),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: _titleHiController,
+              decoration: InputDecoration(
+                labelText: 'Title (Hindi)',
+                prefixIcon: const Icon(Icons.translate_rounded, color: AppColors.primary),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _priceController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Price (₹) *',
+                      prefixIcon: const Icon(Icons.currency_rupee_rounded, color: AppColors.primary),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _stockController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Stock Units',
+                      prefixIcon: const Icon(Icons.inventory_2_outlined, color: AppColors.primary),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            DropdownButtonFormField<String>(
+              initialValue: _status,
+              decoration: InputDecoration(
+                labelText: 'Listing Status',
+                prefixIcon: const Icon(Icons.check_circle_outline, color: AppColors.primary),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              ),
+              items: _statusOptions.map((opt) {
+                return DropdownMenuItem<String>(
+                  value: opt,
+                  child: Text(opt),
+                );
+              }).toList(),
+              onChanged: (val) {
+                if (val != null) setState(() => _status = val);
+              },
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _saveProduct,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  elevation: 0,
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Text(
+                        'Save Product Changes',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                      ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
         ),
       ),
     );

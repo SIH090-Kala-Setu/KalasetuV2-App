@@ -149,6 +149,10 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     }
   }
 
+  void updateUser(UserModel updated) {
+    state = AsyncValue.data(_stateFromUser(updated));
+  }
+
   AuthState _stateFromUser(UserModel user) {
     final role = user.role.toLowerCase();
     return AuthState(

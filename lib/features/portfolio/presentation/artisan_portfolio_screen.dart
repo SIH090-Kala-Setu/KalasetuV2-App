@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/formatters.dart';
@@ -217,38 +219,45 @@ class _PortfolioProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => context.push(RouteNames.productDetail(product.id)),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ProductThumbnail(
-            imageUrl: product.imageUrl,
-            width: double.infinity,
-            height: 130,
-            borderRadius: const BorderRadius.only(topLeft: Radius.circular(11), topRight: Radius.circular(11)),
+        child: Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
           ),
-          Padding(
-            padding: const EdgeInsets.all(8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(product.titleEn, style: AppTextStyles.labelLarge, maxLines: 1, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 4),
-                Text(AppFormatters.inr(product.retailPrice), style: AppTextStyles.priceHero.copyWith(color: AppColors.accent, fontSize: 16)),
-                if (product.giTag)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 4),
-                    child: StatusBadge(status: BadgeStatus.giTag),
-                  ),
-              ],
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ProductThumbnail(
+                imageUrl: product.imageUrl,
+                width: double.infinity,
+                height: 130,
+                borderRadius: const BorderRadius.only(topLeft: Radius.circular(11), topRight: Radius.circular(11)),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(product.titleEn, style: AppTextStyles.labelLarge, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 4),
+                    Text(AppFormatters.inr(product.retailPrice), style: AppTextStyles.priceHero.copyWith(color: AppColors.accent, fontSize: 16)),
+                    if (product.giTag)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 4),
+                        child: StatusBadge(status: BadgeStatus.giTag),
+                      ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

@@ -170,48 +170,6 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
             color: Color(0xFF8A94A6),
           ),
         ),
-        const SizedBox(height: 18),
-
-        // Amber Demo Box
-        InkWell(
-          onTap: () {
-            const demo = '123456';
-            for (int i = 0; i < 6; i++) {
-              _controllers[i].text = demo[i];
-            }
-            _verifyOtp();
-          },
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFEF9EE),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFFDE68A)),
-            ),
-            child: const Row(
-              children: [
-                Text(
-                  'Demo OTP: ',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF92400E),
-                  ),
-                ),
-                Text(
-                  '123456',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF92400E),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
         const SizedBox(height: 24),
 
         // 6 Rounded Input Boxes

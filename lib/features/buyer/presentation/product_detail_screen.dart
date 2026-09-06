@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../shared/models/models.dart';
 import '../../../shared/providers/auth_provider.dart';
 import '../../../shared/widgets/product_thumbnail.dart';
+import '../../../shared/widgets/product_reviews_section.dart';
 
 final productDetailProvider = FutureProvider.autoDispose.family<ProductModel, String>((ref, id) async {
   final api = ref.read(apiClientProvider);
@@ -23,13 +25,14 @@ class ProductDetailScreen extends ConsumerStatefulWidget {
 
 class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   String _language = 'English';
-  int _quantity = 10;
+  int _quantity = 1;
   bool _isSendingRfq = false;
 
   int get _unitPrice {
     if (_quantity >= 50) return 780;
     if (_quantity >= 20) return 840;
-    return 900;
+    if (_quantity >= 10) return 900;
+    return 1200;
   }
 
   int get _totalPrice => _unitPrice * _quantity;
@@ -46,6 +49,12 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
         ? product.imageUrl!
         : 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=800';
     final location = product?.region ?? product?.state ?? 'Varanasi, Uttar Pradesh';
+    final artisanName = (product?.artisanName != null && product!.artisanName!.isNotEmpty)
+        ? product.artisanName!
+        : 'Ramesh Sharma';
+    final artisanCraft = (product?.craft != null && product!.craft!.isNotEmpty)
+        ? product.craft!
+        : (product?.category ?? 'Master Handicrafts');
     final hasGi = product?.giTag ?? true;
     final rating = product?.rating != null && product!.rating > 0 ? product.rating : 4.8;
     final reviewCount = product?.reviewCount != null && product!.reviewCount > 0 ? product.reviewCount : 34;
@@ -311,7 +320,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                 _buildCalcBtn(
                                   icon: Icons.remove,
                                   onTap: () {
-                                    if (_quantity > 5) setState(() => _quantity -= 5);
+                                    if (_quantity > 1) setState(() => _quantity -= 1);
                                   },
                                 ),
                                 Padding(
@@ -323,7 +332,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                 ),
                                 _buildCalcBtn(
                                   icon: Icons.add,
-                                  onTap: () => setState(() => _quantity += 5),
+                                  onTap: () => setState(() => _quantity += 1),
                                 ),
                               ],
                             ),
@@ -389,6 +398,121 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       _MaterialChip(label: 'Natural Dyes'),
                     ],
                   ),
+                  // ── Artisan Profile Card ──────────────────────────────
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 24,
+                              backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                              child: Text(
+                                (artisanName.isNotEmpty ? artisanName[0] : 'A').toUpperCase(),
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          artisanName,
+                                          style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w800,
+                                            color: AppColors.primary,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      const Icon(Icons.verified_rounded, size: 16, color: Color(0xFF10B981)),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '$artisanCraft • $location',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(0xFF64748B),
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.shield_outlined, size: 14, color: Color(0xFF047857)),
+                                SizedBox(width: 4),
+                                Text(
+                                  'MoSJE Registered Artisan',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF047857),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            TextButton.icon(
+                              onPressed: () {
+                                final targetId = (product?.artisanId != null && product!.artisanId!.isNotEmpty)
+                                    ? product.artisanId!
+                                    : 'artisan';
+                                context.push(RouteNames.artisanPortfolio(targetId));
+                              },
+                              icon: const Text(
+                                'View Portfolio',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.primary),
+                              ),
+                              label: const Icon(Icons.arrow_forward_rounded, size: 14, color: AppColors.primary),
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 18),
 
                   // ── Authenticity & Certification Card ──────────────────
@@ -426,121 +550,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   ),
                   const SizedBox(height: 18),
 
-                  // ── Buyer Reviews Card ─────────────────────────────────
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Row(
-                              children: [
-                                Icon(Icons.chat_bubble_outline_rounded, color: AppColors.primary, size: 18),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Buyer Reviews',
-                                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.primary),
-                                ),
-                                SizedBox(width: 4),
-                                Text(
-                                  '(3)',
-                                  style: TextStyle(fontSize: 13, color: Color(0xFF8A94A6)),
-                                ),
-                              ],
-                            ),
-                            OutlinedButton(
-                              onPressed: () {},
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: AppColors.primary,
-                                side: const BorderSide(color: Color(0xFFCBD5E1)),
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                                minimumSize: const Size(0, 34),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              ),
-                              child: const Text('Write a Review', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Score & Histogram
-                        Row(
-                          children: [
-                            const Column(
-                              children: [
-                                Text('4.7', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: AppColors.primary)),
-                                SizedBox(height: 2),
-                                Row(
-                                  children: [
-                                    Icon(Icons.star_rounded, size: 14, color: Color(0xFFF5A623)),
-                                    Icon(Icons.star_rounded, size: 14, color: Color(0xFFF5A623)),
-                                    Icon(Icons.star_rounded, size: 14, color: Color(0xFFF5A623)),
-                                    Icon(Icons.star_rounded, size: 14, color: Color(0xFFF5A623)),
-                                    Icon(Icons.star_half_rounded, size: 14, color: Color(0xFFF5A623)),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            const SizedBox(width: 20),
-                            Expanded(
-                              child: Column(
-                                children: [
-                                  _buildHistoBar('5', 0.67, '2'),
-                                  const SizedBox(height: 4),
-                                  _buildHistoBar('4', 0.33, '1'),
-                                  const SizedBox(height: 4),
-                                  _buildHistoBar('3', 0.0, '0'),
-                                  const SizedBox(height: 4),
-                                  _buildHistoBar('2', 0.0, '0'),
-                                  const SizedBox(height: 4),
-                                  _buildHistoBar('1', 0.0, '0'),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 18),
-                        const Divider(color: Color(0xFFE2E8F0)),
-
-                        // Review 1
-                        _buildReviewItem(
-                          name: 'Anita Nair',
-                          company: 'FabIndia',
-                          timeAgo: '2 weeks ago',
-                          stars: 5,
-                          review: 'Exceptional quality! The zari work is stunning and the silk feels luxurious. Our customers loved it.',
-                        ),
-                        const Divider(color: Color(0xFFE2E8F0)),
-
-                        // Review 2
-                        _buildReviewItem(
-                          name: 'Priya Reddy',
-                          company: 'Tribal Co-op',
-                          timeAgo: '1 month ago',
-                          stars: 5,
-                          review: 'Authentic Banarasi craftsmanship. Colors are vibrant and consistent across the batch.',
-                        ),
-                        const Divider(color: Color(0xFFE2E8F0)),
-
-                        // Review 3
-                        _buildReviewItem(
-                          name: 'Meera Joshi',
-                          company: 'Taneira (Titan)',
-                          timeAgo: '2 months ago',
-                          stars: 4,
-                          review: 'Beautiful product, slight delay in delivery but quality is top-notch.',
-                        ),
-                      ],
-                    ),
-                  ),
+                  // ── Live Buyer Reviews ─────────────────────────────────
+                  ProductReviewsSection(productId: widget.productId),
                   const SizedBox(height: 24),
                 ],
               ),
@@ -692,91 +703,6 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
               color: isActive ? const Color(0xFF92400E) : AppColors.primary,
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHistoBar(String star, double pct, String count) {
-    return Row(
-      children: [
-        Text(star, style: const TextStyle(fontSize: 11, color: Color(0xFF8A94A6))),
-        const SizedBox(width: 8),
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: pct,
-              backgroundColor: const Color(0xFFE2E8F0),
-              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFF5A623)),
-              minHeight: 6,
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(count, style: const TextStyle(fontSize: 11, color: Color(0xFF8A94A6))),
-      ],
-    );
-  }
-
-  Widget _buildReviewItem({
-    required String name,
-    required String company,
-    required String timeAgo,
-    required int stars,
-    required String review,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Text(name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.primary)),
-                  const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFD1FAE5),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.shield_outlined, size: 10, color: Color(0xFF047857)),
-                        SizedBox(width: 2),
-                        Text('Verified', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: Color(0xFF047857))),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              Row(
-                children: List.generate(
-                  5,
-                  (i) => Icon(
-                    i < stars ? Icons.star_rounded : Icons.star_border_rounded,
-                    size: 14,
-                    color: const Color(0xFFF5A623),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 2),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(company, style: const TextStyle(fontSize: 11, color: Color(0xFF8A94A6))),
-              Text(timeAgo, style: const TextStyle(fontSize: 11, color: Color(0xFF8A94A6))),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(review, style: const TextStyle(fontSize: 12, height: 1.35, color: Color(0xFF475569))),
         ],
       ),
     );

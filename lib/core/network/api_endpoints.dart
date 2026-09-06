@@ -138,6 +138,7 @@ class ApiEndpoints {
 
   // ── Buyer ────────────────────────────────────────────────────
   static const String buyerDashboard = '/buyer/dashboard';
+  static const String buyerProfile = '/buyer/profile';
 
   // ── Notifications ─────────────────────────────────────────────
   static const String notifications = '/notifications';
