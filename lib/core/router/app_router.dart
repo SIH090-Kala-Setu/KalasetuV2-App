@@ -99,8 +99,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RouteNames.onboardingRegister,
         builder: (context, state) {
-          final role = state.extra as String? ?? 'Artisan';
-          return RegistrationWizardScreen(role: role);
+          String role = 'Artisan';
+          String? phone;
+          if (state.extra is Map) {
+            final map = state.extra as Map;
+            role = map['role'] as String? ?? 'Artisan';
+            phone = map['phone'] as String?;
+          } else if (state.extra is String) {
+            role = state.extra as String;
+          }
+          return RegistrationWizardScreen(role: role, phone: phone);
         },
       ),
       GoRoute(

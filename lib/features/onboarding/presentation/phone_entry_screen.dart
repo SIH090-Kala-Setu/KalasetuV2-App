@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/network/api_client.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 
-class PhoneEntryScreen extends StatefulWidget {
+class PhoneEntryScreen extends ConsumerStatefulWidget {
   final String role;
   const PhoneEntryScreen({super.key, required this.role});
 
   @override
-  State<PhoneEntryScreen> createState() => _PhoneEntryScreenState();
+  ConsumerState<PhoneEntryScreen> createState() => _PhoneEntryScreenState();
 }
 
-class _PhoneEntryScreenState extends State<PhoneEntryScreen> {
+class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
   final _phoneController = TextEditingController();
   bool _isLoading = false;
 
@@ -227,17 +229,47 @@ class _PhoneEntryScreenState extends State<PhoneEntryScreen> {
   }
 
   Future<void> _sendOtp() async {
+    final rawDigits = _phoneController.text.trim().replaceAll(RegExp(r'[\s-]'), '');
+    final formattedPhone = rawDigits.startsWith('+') ? rawDigits : '+91$rawDigits';
+
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 500));
-    if (mounted) {
-      setState(() => _isLoading = false);
-      context.go(
-        RouteNames.onboardingOtp,
-        extra: {
-          'phone': '+91 ${_phoneController.text.trim()}',
-          'role': widget.role,
-        },
-      );
+    try {
+      final api = ref.read(apiClientProvider);
+      await api.sendOtp(formattedPhone);
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+        context.go(
+          RouteNames.onboardingOtp,
+          extra: {
+            'phone': formattedPhone,
+            'role': widget.role,
+          },
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not send OTP: $e'),
+            backgroundColor: const Color(0xFFDC2626),
+            action: SnackBarAction(
+              label: 'Proceed (Demo)',
+              textColor: Colors.white,
+              onPressed: () {
+                context.go(
+                  RouteNames.onboardingOtp,
+                  extra: {
+                    'phone': formattedPhone,
+                    'role': widget.role,
+                  },
+                );
+              },
+            ),
+          ),
+        );
+      }
     }
   }
 }

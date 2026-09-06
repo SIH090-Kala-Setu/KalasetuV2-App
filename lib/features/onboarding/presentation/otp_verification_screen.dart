@@ -1,24 +1,29 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/network/api_client.dart';
 import '../../../core/router/route_names.dart';
+import '../../../core/storage/secure_storage.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../shared/providers/auth_provider.dart';
 
-class OtpVerificationScreen extends StatefulWidget {
+class OtpVerificationScreen extends ConsumerStatefulWidget {
   final String phone;
   final String role;
   const OtpVerificationScreen({super.key, required this.phone, required this.role});
 
   @override
-  State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
+  ConsumerState<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
 }
 
-class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
+class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
   final List<TextEditingController> _controllers =
       List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
   bool _isPhoneVerified = false;
   bool _canResend = false;
+  bool _isVerifying = false;
   int _secondsLeft = 25;
   Timer? _timer;
 
@@ -54,8 +59,56 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   String get _otpValue => _controllers.map((c) => c.text).join();
 
-  void _verifyOtp() {
-    setState(() => _isPhoneVerified = true);
+  Future<void> _verifyOtp() async {
+    if (_isVerifying) return;
+    final otp = _otpValue;
+    if (otp.length != 6) return;
+
+    setState(() => _isVerifying = true);
+    try {
+      final api = ref.read(apiClientProvider);
+      final res = await api.verifyOtp(widget.phone, otp);
+
+      if (mounted) {
+        setState(() => _isVerifying = false);
+        // If user already exists in DB, log them in directly
+        if (res['is_registered'] == true && res['access_token'] != null) {
+          final storage = ref.read(secureStorageProvider);
+          await storage.saveAccessToken(res['access_token'] as String);
+          await ref.read(authProvider.notifier).refreshUser();
+          final authState = ref.read(authProvider);
+          authState.whenData((auth) {
+            context.go(switch (auth.status) {
+              AuthStatus.authenticatedArtisan => RouteNames.artisanHome,
+              AuthStatus.authenticatedAggregator => RouteNames.aggregatorHome,
+              AuthStatus.authenticatedBuyer => RouteNames.buyerMarketplace,
+              _ => RouteNames.artisanHome,
+            });
+          });
+          return;
+        }
+
+        // Fresh user: advance to verified state
+        setState(() => _isPhoneVerified = true);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isVerifying = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Verification failed: $e'),
+            backgroundColor: const Color(0xFFDC2626),
+            action: SnackBarAction(
+              label: 'Proceed (Demo)',
+              textColor: Colors.white,
+              onPressed: () {
+                setState(() => _isPhoneVerified = true);
+              },
+            ),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -211,19 +264,26 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             );
           }),
         ),
+        if (_isVerifying) ...[
+          const SizedBox(height: 16),
+          const Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                SizedBox(width: 10),
+                Text('Verifying OTP with server...', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary)),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 28),
 
         // Resend Timer
         Center(
           child: _canResend
               ? TextButton(
-                  onPressed: () {
-                    setState(() {
-                      _canResend = false;
-                      _secondsLeft = 25;
-                    });
-                    _startTimer();
-                  },
+                  onPressed: _resendOtp,
                   child: const Text(
                     'Resend OTP',
                     style: TextStyle(
@@ -244,6 +304,36 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         ),
       ],
     );
+  }
+
+  Future<void> _resendOtp() async {
+    setState(() {
+      _canResend = false;
+      _secondsLeft = 25;
+    });
+    _startTimer();
+    try {
+      final api = ref.read(apiClientProvider);
+      await api.sendOtp(widget.phone);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('OTP resent successfully'),
+            backgroundColor: Color(0xFF15803D),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not resend OTP: $e'),
+            backgroundColor: const Color(0xFFDC2626),
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildVerifiedView() {
@@ -303,7 +393,13 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           width: double.infinity,
           height: 54,
           child: ElevatedButton(
-            onPressed: () => context.go(RouteNames.onboardingRegister, extra: widget.role),
+            onPressed: () => context.go(
+              RouteNames.onboardingRegister,
+              extra: {
+                'role': widget.role,
+                'phone': widget.phone,
+              },
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,

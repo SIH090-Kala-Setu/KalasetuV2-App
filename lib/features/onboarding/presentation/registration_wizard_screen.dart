@@ -7,7 +7,8 @@ import '../../../shared/providers/auth_provider.dart';
 
 class RegistrationWizardScreen extends ConsumerStatefulWidget {
   final String role;
-  const RegistrationWizardScreen({super.key, required this.role});
+  final String? phone;
+  const RegistrationWizardScreen({super.key, required this.role, this.phone});
 
   @override
   ConsumerState<RegistrationWizardScreen> createState() => _RegistrationWizardScreenState();
@@ -320,6 +321,7 @@ class _RegistrationWizardScreenState extends ConsumerState<RegistrationWizardScr
         username: _usernameCtrl.text.trim(),
         password: 'password123',
         role: widget.role.isNotEmpty ? widget.role : 'Artisan',
+        phone: widget.phone,
         fullName: _fullNameCtrl.text.trim(),
         craftType: _craftTypeCtrl.text.trim(),
         region: _regionCtrl.text.trim(),
