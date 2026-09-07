@@ -15,6 +15,9 @@ class AggregatorHomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     final dashAsync = ref.watch(aggregatorDashboardProvider);
     final dash = dashAsync.valueOrNull;
 
@@ -27,7 +30,7 @@ class AggregatorHomeScreen extends ConsumerWidget {
     const revenue = '₹ 4.8L';
 
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async => ref.invalidate(aggregatorDashboardProvider),
@@ -38,22 +41,22 @@ class AggregatorHomeScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Header Title ───────────────────────────────────────
-                const Text(
+                Text(
                   'Cluster Overview',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.primary,
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
                     letterSpacing: -0.5,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   '$clusterName · $totalArtisans artisans',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF8A94A6),
+                    color: isDark ? AppColors.darkTextSecondary : const Color(0xFF8A94A6),
                   ),
                 ),
                 const SizedBox(height: 18),
@@ -61,17 +64,18 @@ class AggregatorHomeScreen extends ConsumerWidget {
               // ── 4 Stats Grid Cards (2x2) ───────────────────────────
               Row(
                 children: [
-                  // Total Artisans (Deep Navy Card)
+                  // Total Artisans Card
                   Expanded(
                     child: Container(
                       height: 120,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: AppColors.primary,
+                        color: isDark ? AppColors.darkSurfaceVariant : AppColors.primary,
                         borderRadius: BorderRadius.circular(18),
+                        border: isDark ? Border.all(color: AppColors.darkBorder) : null,
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.primary.withValues(alpha: 0.25),
+                            color: isDark ? Colors.black26 : AppColors.primary.withValues(alpha: 0.25),
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),
@@ -81,24 +85,28 @@ class AggregatorHomeScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Icon(Icons.groups_outlined, color: Colors.white70, size: 24),
+                          Icon(
+                            Icons.groups_outlined,
+                            color: isDark ? AppColors.accent : Colors.white70,
+                            size: 24,
+                          ),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 totalArtisans,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 28,
                                   fontWeight: FontWeight.w800,
-                                  color: Colors.white,
+                                  color: isDark ? AppColors.darkTextPrimary : Colors.white,
                                 ),
                               ),
-                              const Text(
+                              Text(
                                 'Total Artisans',
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
-                                  color: Colors.white70,
+                                  color: isDark ? AppColors.darkTextSecondary : Colors.white70,
                                 ),
                               ),
                             ],
@@ -109,41 +117,51 @@ class AggregatorHomeScreen extends ConsumerWidget {
                   ),
                   const SizedBox(width: 14),
 
-                  // Active Listings (White Card)
+                  // Active Listings Card
                   Expanded(
                     child: Container(
                       height: 120,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: isDark ? AppColors.darkSurface : Colors.white,
                         borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                        boxShadow: const [
-                          BoxShadow(color: Color(0x04000000), blurRadius: 8, offset: Offset(0, 2)),
+                        border: Border.all(
+                          color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isDark ? Colors.black12 : const Color(0x04000000),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
                         ],
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Icon(Icons.inventory_2_outlined, color: AppColors.primary, size: 24),
+                          Icon(
+                            Icons.inventory_2_outlined,
+                            color: isDark ? AppColors.accent : AppColors.primary,
+                            size: 24,
+                          ),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 activeListings,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 28,
                                   fontWeight: FontWeight.w800,
-                                  color: AppColors.primary,
+                                  color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
                                 ),
                               ),
-                              const Text(
+                              Text(
                                 'Active Listings',
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
-                                  color: Color(0xFF64748B),
+                                  color: isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B),
                                 ),
                               ),
                             ],
@@ -158,41 +176,51 @@ class AggregatorHomeScreen extends ConsumerWidget {
 
               Row(
                 children: [
-                  // Pending KYC (White Card)
+                  // Pending Inquiries Card
                   Expanded(
                     child: Container(
                       height: 120,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: isDark ? AppColors.darkSurface : Colors.white,
                         borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                        boxShadow: const [
-                          BoxShadow(color: Color(0x04000000), blurRadius: 8, offset: Offset(0, 2)),
+                        border: Border.all(
+                          color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isDark ? Colors.black12 : const Color(0x04000000),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
                         ],
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Icon(Icons.access_time_outlined, color: AppColors.primary, size: 24),
+                          Icon(
+                            Icons.access_time_outlined,
+                            color: isDark ? AppColors.accent : AppColors.primary,
+                            size: 24,
+                          ),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 pendingInquiries,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 28,
                                   fontWeight: FontWeight.w800,
-                                  color: AppColors.primary,
+                                  color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
                                 ),
                               ),
-                              const Text(
+                              Text(
                                 'Pending Inquiries',
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
-                                  color: Color(0xFF64748B),
+                                  color: isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B),
                                 ),
                               ),
                             ],
@@ -203,24 +231,34 @@ class AggregatorHomeScreen extends ConsumerWidget {
                   ),
                   const SizedBox(width: 14),
 
-                  // Cluster Revenue (White Card)
+                  // Cluster Revenue Card
                   Expanded(
                     child: Container(
                       height: 120,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: isDark ? AppColors.darkSurface : Colors.white,
                         borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                        boxShadow: const [
-                          BoxShadow(color: Color(0x04000000), blurRadius: 8, offset: Offset(0, 2)),
+                        border: Border.all(
+                          color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isDark ? Colors.black12 : const Color(0x04000000),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
                         ],
                       ),
-                      child: const Column(
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Icon(Icons.currency_rupee_rounded, color: AppColors.primary, size: 24),
+                          Icon(
+                            Icons.currency_rupee_rounded,
+                            color: isDark ? const Color(0xFF10B981) : AppColors.primary,
+                            size: 24,
+                          ),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -229,7 +267,7 @@ class AggregatorHomeScreen extends ConsumerWidget {
                                 style: TextStyle(
                                   fontSize: 28,
                                   fontWeight: FontWeight.w800,
-                                  color: AppColors.primary,
+                                  color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
                                 ),
                               ),
                               Text(
@@ -237,7 +275,7 @@ class AggregatorHomeScreen extends ConsumerWidget {
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
-                                  color: Color(0xFF64748B),
+                                  color: isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B),
                                 ),
                               ),
                             ],
@@ -255,26 +293,32 @@ class AggregatorHomeScreen extends ConsumerWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? AppColors.darkSurface : Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                  boxShadow: const [
-                    BoxShadow(color: Color(0x04000000), blurRadius: 8, offset: Offset(0, 2)),
+                  border: Border.all(
+                    color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: isDark ? Colors.black12 : const Color(0x04000000),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
                   ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Row(
+                    Row(
                       children: [
-                        Icon(Icons.error_outline_rounded, color: Color(0xFFD97706), size: 22),
-                        SizedBox(width: 8),
+                        const Icon(Icons.error_outline_rounded, color: Color(0xFFD97706), size: 22),
+                        const SizedBox(width: 8),
                         Text(
                           'Needs Attention',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.primary,
+                            color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
                           ),
                         ),
                       ],
@@ -287,8 +331,9 @@ class AggregatorHomeScreen extends ConsumerWidget {
                       craftLocation: 'Kutch Embroidery · Hodka',
                       avatarUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=100',
                       badgeLabel: 'KYC Pending',
-                      badgeBg: const Color(0xFFFEF3C7),
-                      badgeColor: const Color(0xFFD97706),
+                      badgeBg: isDark ? const Color(0xFF78350F) : const Color(0xFFFEF3C7),
+                      badgeColor: isDark ? const Color(0xFFFDE68A) : const Color(0xFFD97706),
+                      isDark: isDark,
                     ),
                     const SizedBox(height: 14),
 
@@ -298,8 +343,9 @@ class AggregatorHomeScreen extends ConsumerWidget {
                       craftLocation: 'Lacquerware Toys · Channapatna',
                       avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100',
                       badgeLabel: 'Draft Only',
-                      badgeBg: const Color(0xFFF1F5F9),
-                      badgeColor: const Color(0xFF64748B),
+                      badgeBg: isDark ? AppColors.darkSurfaceVariant : const Color(0xFFF1F5F9),
+                      badgeColor: isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B),
+                      isDark: isDark,
                     ),
                     const SizedBox(height: 18),
 
@@ -333,10 +379,11 @@ class AggregatorHomeScreen extends ConsumerWidget {
                   Expanded(
                     child: _buildActionTile(
                       icon: Icons.groups_outlined,
-                      iconColor: const Color(0xFF1E40AF),
+                      iconColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1E40AF),
                       title: 'Artisans Roster',
                       subtitle: 'Manage & verify',
                       onTap: () => context.push(RouteNames.aggregatorArtisans),
+                      isDark: isDark,
                     ),
                   ),
                   const SizedBox(width: 14),
@@ -347,6 +394,7 @@ class AggregatorHomeScreen extends ConsumerWidget {
                       title: 'Analytics',
                       subtitle: 'Craft distribution',
                       onTap: () => context.push(RouteNames.aggregatorAnalytics),
+                      isDark: isDark,
                     ),
                   ),
                 ],
@@ -357,20 +405,22 @@ class AggregatorHomeScreen extends ConsumerWidget {
                   Expanded(
                     child: _buildActionTile(
                       icon: Icons.campaign_outlined,
-                      iconColor: const Color(0xFF047857),
+                      iconColor: const Color(0xFF10B981),
                       title: 'Schemes',
                       subtitle: 'Broadcast & report',
                       onTap: () => context.push(RouteNames.aggregatorAlerts),
+                      isDark: isDark,
                     ),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
                     child: _buildActionTile(
                       icon: Icons.person_add_alt_1_outlined,
-                      iconColor: const Color(0xFF2563EB),
+                      iconColor: isDark ? const Color(0xFF93C5FD) : const Color(0xFF2563EB),
                       title: 'Assist Artisan',
                       subtitle: 'AI Studio on behalf',
                       onTap: () => context.push(RouteNames.artisanStudio),
+                      isDark: isDark,
                     ),
                   ),
                 ],
@@ -382,7 +432,7 @@ class AggregatorHomeScreen extends ConsumerWidget {
       ),
     ),
   );
-  }
+}
 
   Widget _buildAttentionItem({
     required String name,
@@ -391,13 +441,14 @@ class AggregatorHomeScreen extends ConsumerWidget {
     required String badgeLabel,
     required Color badgeBg,
     required Color badgeColor,
+    required bool isDark,
   }) {
     return Row(
       children: [
         CircleAvatar(
           radius: 22,
           backgroundImage: NetworkImage(avatarUrl),
-          backgroundColor: const Color(0xFFF1F5F9),
+          backgroundColor: isDark ? AppColors.darkSurfaceVariant : const Color(0xFFF1F5F9),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -406,19 +457,19 @@ class AggregatorHomeScreen extends ConsumerWidget {
             children: [
               Text(
                 name,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.primary,
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 craftLocation,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF8A94A6),
+                  color: isDark ? AppColors.darkTextSecondary : const Color(0xFF8A94A6),
                 ),
               ),
             ],
@@ -449,6 +500,7 @@ class AggregatorHomeScreen extends ConsumerWidget {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
+    required bool isDark,
   }) {
     return InkWell(
       onTap: onTap,
@@ -457,11 +509,17 @@ class AggregatorHomeScreen extends ConsumerWidget {
         height: 110,
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? AppColors.darkSurface : Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-          boxShadow: const [
-            BoxShadow(color: Color(0x04000000), blurRadius: 8, offset: Offset(0, 2)),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: isDark ? Colors.black12 : const Color(0x04000000),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
           ],
         ),
         child: Column(
@@ -474,18 +532,18 @@ class AggregatorHomeScreen extends ConsumerWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.primary,
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
                   ),
                 ),
                 Text(
                   subtitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF8A94A6),
+                    color: isDark ? AppColors.darkTextSecondary : const Color(0xFF8A94A6),
                   ),
                 ),
               ],

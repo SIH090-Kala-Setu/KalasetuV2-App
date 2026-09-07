@@ -18,9 +18,9 @@ class AppTheme {
 
     final colorScheme = isDark
         ? const ColorScheme.dark(
-            primary: AppColors.primary,
-            primaryContainer: AppColors.primaryDark,
-            secondary: AppColors.accent,
+            primary: AppColors.accent,
+            primaryContainer: AppColors.primaryLight,
+            secondary: AppColors.accentLight,
             secondaryContainer: AppColors.accentDark,
             surface: AppColors.darkSurface,
             error: AppColors.error,
@@ -51,7 +51,7 @@ class AppTheme {
       brightness: isDark ? Brightness.dark : Brightness.light,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: bg,
-      primaryColor: AppColors.primary,
+      primaryColor: isDark ? AppColors.accent : AppColors.primary,
 
       // ── Text Theme ──────────────────────────────────────────
       textTheme: GoogleFonts.outfitTextTheme().copyWith(
@@ -102,8 +102,8 @@ class AppTheme {
       // ── Elevated Button ─────────────────────────────────────
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
+          backgroundColor: isDark ? AppColors.accent : AppColors.primary,
+          foregroundColor: isDark ? Colors.black87 : Colors.white,
           disabledBackgroundColor: border,
           textStyle: AppTextStyles.button,
           minimumSize: const Size(double.infinity, 56),
@@ -116,8 +116,8 @@ class AppTheme {
       // ── Outlined Button ─────────────────────────────────────
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primary,
-          side: const BorderSide(color: AppColors.primary, width: 1.5),
+          foregroundColor: isDark ? AppColors.accent : AppColors.primary,
+          side: BorderSide(color: isDark ? AppColors.accent : AppColors.primary, width: 1.5),
           textStyle: AppTextStyles.button,
           minimumSize: const Size(double.infinity, 56),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),

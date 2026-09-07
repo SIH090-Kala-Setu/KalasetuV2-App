@@ -98,6 +98,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     required String username,
     required String password,
     required String role,
+    String? phone,
     String? fullName,
     String? preferredLang,
     String? craftType,
@@ -114,6 +115,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
         username: username,
         password: password,
         role: role,
+        phone: phone,
         fullName: fullName,
         preferredLang: preferredLang,
         craftType: craftType,
@@ -145,6 +147,10 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     } catch (_) {
       // Silently ignore refresh errors
     }
+  }
+
+  void updateUser(UserModel updated) {
+    state = AsyncValue.data(_stateFromUser(updated));
   }
 
   AuthState _stateFromUser(UserModel user) {

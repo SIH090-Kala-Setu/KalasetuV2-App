@@ -202,7 +202,8 @@ class _ProductReviewsSectionState extends ConsumerState<ProductReviewsSection> {
       builder: (_) => _WriteReviewSheet(
         productId: widget.productId,
         onSubmitted: (review) {
-          setState(() => _reviews = [...?_reviews, review]);
+          setState(() => _reviews = [review, ...?_reviews]);
+          _loadReviews();
         },
       ),
     );
@@ -359,10 +360,26 @@ class _WriteReviewSheetState extends ConsumerState<_WriteReviewSheet> {
               ),
             ),
           ),
-          const SizedBox(height: 20),
-          Text('Write a Review',
-              style: AppTextStyles.headlineMedium.copyWith(color: textPrimary)),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Write a Review',
+                  style: AppTextStyles.headlineMedium.copyWith(color: textPrimary)),
+              IconButton(
+                icon: Icon(
+                  Icons.close_rounded,
+                  color: isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B),
+                  size: 24,
+                ),
+                onPressed: () => Navigator.of(context).pop(),
+                tooltip: 'Close',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
           // Star rating
           Center(
             child: StarRating.interactive(
@@ -424,6 +441,12 @@ class _WriteReviewSheetState extends ConsumerState<_WriteReviewSheet> {
       if (mounted) {
         if (review != null) {
           widget.onSubmitted(review);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Review submitted successfully!'),
+              backgroundColor: Color(0xFF047857),
+            ),
+          );
         } else {
           throw Exception('Review response empty');
         }

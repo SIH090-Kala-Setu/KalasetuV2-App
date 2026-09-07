@@ -32,6 +32,7 @@ class ApiClient {
     required String username,
     required String password,
     required String role,
+    String? phone,
     String? fullName,
     String? preferredLang,
     String? craftType,
@@ -43,6 +44,7 @@ class ApiClient {
       'username': username,
       'password': password,
       'role': role,
+      if (phone != null) 'phone_number': phone,
       if (fullName != null) 'full_name': fullName,
       'preferred_lang': preferredLang ?? 'hi',
       if (craftType != null) 'craft_type': craftType,
@@ -117,12 +119,13 @@ class ApiClient {
     return ProductCatalogGenerated.fromJson(response.data as Map<String, dynamic>);
   }
 
-  Future<ProductCatalogGenerated> generateCatalogFromImage(Uint8List bytes) async {
+  Future<ProductCatalogGenerated> generateCatalogFromImage(Uint8List bytes, {String lang = 'Hindi'}) async {
     try {
       final response = await _dio.post(
         ApiEndpoints.catalogVision,
         data: FormData.fromMap({
           'image': MultipartFile.fromBytes(bytes, filename: 'product.jpg'),
+          'lang': lang,
         }),
       );
       return ProductCatalogGenerated.fromJson(response.data as Map<String, dynamic>);
@@ -130,7 +133,7 @@ class ApiClient {
       // Graceful fallback to voice/text catalog generator if vision endpoint is not present
       return generateCatalog(
         textDesc: 'Handcrafted traditional Indian artisan product made with authentic cultural craftsmanship',
-        lang: 'Hindi',
+        lang: lang,
       );
     }
   }
@@ -220,6 +223,8 @@ class ApiClient {
     String? region,
     double? minPrice,
     double? maxPrice,
+    String? status,
+    String? sortBy,
     int limit = 40,
     int offset = 0,
   }) async {
@@ -231,6 +236,10 @@ class ApiClient {
     if (region != null && region.isNotEmpty) params['region'] = region;
     if (minPrice != null) params['min_price'] = minPrice;
     if (maxPrice != null) params['max_price'] = maxPrice;
+    if (status != null && status.isNotEmpty && status != 'All') {
+      params['status'] = status;
+    }
+    if (sortBy != null && sortBy.isNotEmpty) params['sort_by'] = sortBy;
 
     final response = await _dio.get(ApiEndpoints.products, queryParameters: params);
     final list = response.data as List<dynamic>;
@@ -293,6 +302,14 @@ class ApiClient {
         if (suggestedPrice != null) 'suggested_price': suggestedPrice,
       }),
     );
+  }
+
+  Future<ProductModel> updateProduct(String id, Map<String, dynamic> data) async {
+    final response = await _dio.put(
+      ApiEndpoints.productDetail(id),
+      data: data,
+    );
+    return ProductModel.fromJson(response.data as Map<String, dynamic>);
   }
 
   Future<Uint8List> getProductQr(String id) async {
@@ -365,30 +382,63 @@ class ApiClient {
     return InquiryModel.fromJson(response.data as Map<String, dynamic>);
   }
 
-  Future<void> respondToInquiry(String id, String message) async {
+  Future<void> respondToInquiry(String id, String message, {String? status}) async {
+    final map = <String, dynamic>{'response_message': message};
+    if (status != null && status.isNotEmpty) {
+      map['status'] = status;
+    }
     await _dio.post(
       ApiEndpoints.respondInquiry(id),
-      data: FormData.fromMap({'response_message': message}),
+      data: FormData.fromMap(map),
     );
   }
 
   // ── Artisan ───────────────────────────────────────────────────
 
   Future<Map<String, dynamic>> getArtisanDashboard() async {
-    final response = await _dio.get(ApiEndpoints.artisanDashboard);
-    return response.data as Map<String, dynamic>;
+    try {
+      final response = await _dio.get(ApiEndpoints.artisanDashboard);
+      if (response.data is Map<String, dynamic>) {
+        return response.data as Map<String, dynamic>;
+      }
+      return {};
+    } catch (e) {
+      return {
+        'total_listings': 0,
+        'active_listings': 0,
+        'pending_listings': 0,
+        'total_views': 0,
+        'total_inquiries': 0,
+        'pending_inquiries': 0,
+        'revenue_estimate': 0,
+        'unread_notifications': 0,
+        'top_products': [],
+      };
+    }
   }
 
   Future<Map<String, dynamic>> getArtisanProfile() async {
-    final response = await _dio.get(ApiEndpoints.artisanProfile);
-    return response.data as Map<String, dynamic>;
+    try {
+      final response = await _dio.get(ApiEndpoints.artisanProfile);
+      if (response.data is Map<String, dynamic>) {
+        return response.data as Map<String, dynamic>;
+      }
+      return {};
+    } catch (_) {
+      return {};
+    }
   }
 
-  Future<void> updateArtisanProfile(Map<String, dynamic> data) async {
-    await _dio.put(
+  Future<UserModel> updateArtisanProfile(Map<String, dynamic> data) async {
+    final response = await _dio.put(
       ApiEndpoints.artisanProfile,
       data: FormData.fromMap(data),
     );
+    final resData = response.data;
+    if (resData is Map<String, dynamic> && resData.containsKey('user')) {
+      return UserModel.fromJson(resData['user'] as Map<String, dynamic>);
+    }
+    return UserModel.fromJson(resData as Map<String, dynamic>);
   }
 
   Future<Map<String, dynamic>> getArtisanPortfolio(String artisanId) async {
@@ -398,6 +448,19 @@ class ApiClient {
     } catch (_) {
       return {
         'artisan_id': artisanId,
+        'artisan': {
+          'id': artisanId,
+          'full_name': 'Master Artisan',
+          'role': 'Artisan',
+          'craft_type': 'Handloom & Handicrafts',
+          'state': 'Uttar Pradesh',
+          'district': 'Varanasi',
+          'village': 'Ramnagar',
+          'experience_years': 15,
+          'bio': 'Master craftsperson dedicated to preserving traditional Indian handicrafts.',
+          'is_verified': true,
+          'cluster_name': 'Heritage Artisan Cluster',
+        },
         'products': [],
       };
     }
@@ -504,6 +567,14 @@ class ApiClient {
   Future<Map<String, dynamic>> getBuyerDashboard() async {
     final response = await _dio.get(ApiEndpoints.buyerDashboard);
     return response.data as Map<String, dynamic>;
+  }
+
+  Future<UserModel> updateBuyerProfile(Map<String, dynamic> data) async {
+    final response = await _dio.put(
+      ApiEndpoints.buyerProfile,
+      data: data,
+    );
+    return UserModel.fromJson(response.data as Map<String, dynamic>);
   }
 
   // ── Exhibitions & Schemes ─────────────────────────────────────

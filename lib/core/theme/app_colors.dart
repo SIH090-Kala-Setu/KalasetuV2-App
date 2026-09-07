@@ -106,4 +106,23 @@ class AppColors {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
+
+  // ── Adaptive Helpers ──────────────────────────────────────────
+  static Color textPrimary(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark ? darkTextPrimary : lightTextPrimary;
+
+  static Color textSecondary(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark ? darkTextSecondary : lightTextSecondary;
+
+  static Color surface(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark ? darkSurface : lightSurface;
+
+  static Color surfaceVariant(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark ? darkSurfaceVariant : lightSurfaceVariant;
+
+  static Color border(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark ? darkBorder : lightBorder;
+
+  static Color adaptivePrimary(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark ? accent : primary;
 }

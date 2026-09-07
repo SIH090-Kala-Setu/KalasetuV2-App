@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/services/draft_storage_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/models/models.dart';
 import 'artisan_catalogue_screen.dart';
@@ -24,19 +27,31 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
   final _picker = ImagePicker();
   late final AudioRecorder _audioRecorder;
 
-  // Step 1: Camera & Image state
+  // Step 1: In-app Camera & Image state
+  List<CameraDescription> _cameras = [];
+  CameraController? _cameraController;
+  bool _isCameraReady = false;
   Uint8List? _capturedImageBytes;
   Uint8List? _enhancedImageBytes;
   bool _showEnhanced = true;
   bool _isEnhancing = false;
   bool _isFlashOn = false;
-  bool _isFrontCamera = false;
 
-  // Step 2: Voice & Catalog state
+  // Step 2: Voice & Catalog state & Editable Controllers
   bool _isRecording = false;
   bool _recordingComplete = false;
   bool _isCataloging = false;
+  bool _hasVisionCatalogRun = false;
   final _manualDescCtrl = TextEditingController();
+
+  late final TextEditingController _titleEnCtrl;
+  late final TextEditingController _titleHiCtrl;
+  late final TextEditingController _descEnCtrl;
+  late final TextEditingController _descHiCtrl;
+  late final TextEditingController _storyCtrl;
+  late final TextEditingController _categoryCtrl;
+  late final TextEditingController _materialsCtrl;
+  late final TextEditingController _tagsCtrl;
 
   String _titleEn = 'Handwoven Varanasi Pure Silk Dupatta with Zari Border';
   String _titleHi = 'हथकरघा बनारसी सिल्क दुपट्टा (ज़री बॉर्डर)';
@@ -44,6 +59,8 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
       'Master weaver Ramesh Sharma uses pure mulberry silk and real zari on a traditional pit loom. Natural dyes from indigo and madder roots. GI tag certified.';
   String _descriptionHi =
       'मास्टर बुनकर रमेश शर्मा पारंपरिक गड्ढा करघे पर शुद्ध शहतूत रेशम और असली जरी का उपयोग करते हैं।';
+  String _story =
+      'Centuries of Banarasi pit-loom weaving tradition preserved across four generations of master artisans in Varanasi.';
   String _category = 'Handloom';
   List<String> _materials = ['Pure Mulberry Silk', 'Real Zari Thread', 'Natural Dyes'];
   List<String> _tags = ['Handloom', 'Pure Silk', 'GI Tag', 'Banarasi', 'Zari Border'];
@@ -63,44 +80,67 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
   @override
   void initState() {
     super.initState();
+    _titleEnCtrl = TextEditingController(text: _titleEn);
+    _titleHiCtrl = TextEditingController(text: _titleHi);
+    _descEnCtrl = TextEditingController(text: _descriptionEn);
+    _descHiCtrl = TextEditingController(text: _descriptionHi);
+    _storyCtrl = TextEditingController(text: _story);
+    _categoryCtrl = TextEditingController(text: _category);
+    _materialsCtrl = TextEditingController(text: _materials.join(', '));
+    _tagsCtrl = TextEditingController(text: _tags.join(', '));
+
     _audioRecorder = AudioRecorder();
+    _initInAppCamera();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkForSavedDraft();
+    });
   }
 
   @override
   void dispose() {
+    _cameraController?.dispose();
     _audioRecorder.dispose();
     _manualDescCtrl.dispose();
     _materialCostCtrl.dispose();
     _laborHoursCtrl.dispose();
+    _titleEnCtrl.dispose();
+    _titleHiCtrl.dispose();
+    _descEnCtrl.dispose();
+    _descHiCtrl.dispose();
+    _storyCtrl.dispose();
+    _categoryCtrl.dispose();
+    _materialsCtrl.dispose();
+    _tagsCtrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.lightBackground,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 12),
-              // Top Bar: 'X' + Progress bar + Step counter
-              Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded, color: AppColors.primary, size: 24),
-                    onPressed: () {
-                      if (_step > 1) {
-                        setState(() => _step--);
-                      } else {
-                        context.pop();
-                      }
-                    },
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        await _handleStudioBack();
+      },
+      child: Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 12),
+                // Top Bar: 'X' + Progress bar + Step counter
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, color: AppColors.primary, size: 24),
+                      onPressed: _handleStudioBack,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Row(
@@ -143,6 +183,7 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
           ),
         ),
       ),
+      ),
     );
   }
 
@@ -152,240 +193,393 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
         ? _enhancedImageBytes
         : _capturedImageBytes;
 
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'AI Camera Studio',
-            style: TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.w800,
-              color: AppColors.primary,
-              letterSpacing: -0.5,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'AI Camera Studio',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    'AI studio lighting & background enhancement',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF8A94A6)),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Capture your craft with AI studio lighting & background enhancement',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF8A94A6)),
-          ),
-          const SizedBox(height: 20),
+            if (_capturedImageBytes == null)
+              TextButton.icon(
+                onPressed: _goToVoiceStep,
+                icon: const Icon(Icons.fast_forward_rounded, size: 16, color: AppColors.primary),
+                label: const Text('Skip', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 13)),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
 
-          // Dark Navy Camera Viewport Container
-          Container(
+        // Camera Viewport Container - Expanded to full available screen space
+        Expanded(
+          child: Container(
             width: double.infinity,
-            height: 380,
             decoration: BoxDecoration(
-              color: AppColors.primary,
+              color: displayBytes != null ? Colors.white : AppColors.primary,
               borderRadius: BorderRadius.circular(24),
+              border: displayBytes != null ? Border.all(color: const Color(0xFFE2E8F0), width: 1.5) : null,
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.25),
+                  color: displayBytes != null
+                      ? Colors.black.withValues(alpha: 0.08)
+                      : AppColors.primary.withValues(alpha: 0.25),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),
               ],
             ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Captured or enhanced image preview
-                if (displayBytes != null)
-                  Positioned.fill(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(24),
-                      child: Image.memory(displayBytes, fit: BoxFit.cover),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // 1. Captured or enhanced image preview on pure white studio canvas
+                  if (displayBytes != null)
+                    Positioned.fill(
+                      child: Container(
+                        color: Colors.white,
+                        padding: const EdgeInsets.all(12),
+                        child: Image.memory(displayBytes, fit: BoxFit.contain),
+                      ),
                     ),
-                  ),
 
-                // Dashed Viewfinder Frame
-                if (displayBytes == null)
-                  const Positioned.fill(
-                    child: Padding(
-                      padding: EdgeInsets.all(28),
-                      child: CustomPaint(
-                        painter: _DashedRectPainter(color: Colors.white38),
-                        child: Center(
-                          child: Icon(
-                            Icons.camera_alt_outlined,
-                            size: 52,
-                            color: Colors.white54,
-                          ),
+                  // 2. Live in-app camera viewfinder preview
+                  if (displayBytes == null &&
+                      _isCameraReady &&
+                      _cameraController != null &&
+                      _cameraController!.value.isInitialized)
+                    Positioned.fill(
+                      child: FittedBox(
+                        fit: BoxFit.cover,
+                        child: SizedBox(
+                          width: _cameraController!.value.previewSize?.height ?? 1,
+                          height: _cameraController!.value.previewSize?.width ?? 1,
+                          child: CameraPreview(_cameraController!),
                         ),
                       ),
                     ),
-                  ),
 
-                // Enhancing loading indicator overlay
-                if (_isEnhancing)
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.6),
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: const Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          CircularProgressIndicator(color: AppColors.accent),
-                          SizedBox(height: 12),
-                          Text(
-                            'AI Studio Enhancement in progress...',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                  // 3. Fallback Viewfinder when camera hardware is not available (e.g. simulator)
+                  if (displayBytes == null &&
+                      (!_isCameraReady ||
+                          _cameraController == null ||
+                          !_cameraController!.value.isInitialized))
+                    const Positioned.fill(
+                      child: Padding(
+                        padding: EdgeInsets.all(24),
+                        child: CustomPaint(
+                          painter: _DashedRectPainter(color: Colors.white38),
+                          child: Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.camera_alt_outlined,
+                                  size: 52,
+                                  color: Colors.white54,
+                                ),
+                                SizedBox(height: 10),
+                                Text(
+                                  'Center craft within frame',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
 
-                // Top Flash & Flip Camera Icons
-                Positioned(
-                  top: 18,
-                  right: 18,
-                  child: Row(
-                    children: [
-                      _buildSquircleIconButton(
-                        icon: _isFlashOn ? Icons.flash_on_rounded : Icons.flash_off_rounded,
-                        bgColor: _isFlashOn ? const Color(0xFFF5A623) : Colors.white.withValues(alpha: 0.2),
-                        iconColor: _isFlashOn ? AppColors.primary : Colors.white,
-                        onTap: () => setState(() => _isFlashOn = !_isFlashOn),
+                  // 4. Viewfinder Framing guide overlay on live camera
+                  if (displayBytes == null &&
+                      _isCameraReady &&
+                      _cameraController != null &&
+                      _cameraController!.value.isInitialized)
+                    const Positioned.fill(
+                      child: Padding(
+                        padding: EdgeInsets.all(24),
+                        child: CustomPaint(
+                          painter: _DashedRectPainter(color: Colors.white38),
+                        ),
                       ),
-                      const SizedBox(width: 10),
-                      _buildSquircleIconButton(
-                        icon: Icons.flip_camera_ios_outlined,
-                        bgColor: Colors.white.withValues(alpha: 0.15),
-                        iconColor: Colors.white,
-                        onTap: () => setState(() => _isFrontCamera = !_isFrontCamera),
-                      ),
-                    ],
-                  ),
-                ),
+                    ),
 
-                // Gallery Picker at bottom left
-                Positioned(
-                  bottom: 24,
-                  left: 24,
-                  child: _buildSquircleIconButton(
-                    icon: Icons.photo_library_outlined,
-                    bgColor: Colors.white.withValues(alpha: 0.2),
-                    iconColor: Colors.white,
-                    onTap: _pickFromGallery,
-                  ),
-                ),
-
-                // Big Shutter Button at bottom center
-                Positioned(
-                  bottom: 18,
-                  child: GestureDetector(
-                    onTap: _takePhoto,
-                    child: Container(
-                      width: 72,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 4),
-                      ),
+                  // Enhancing loading indicator overlay
+                  if (_isEnhancing)
+                    Container(
+                      color: Colors.black.withValues(alpha: 0.65),
                       child: Center(
-                        child: Container(
-                          width: 54,
-                          height: 54,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Color(0xFF334155),
-                          ),
-                          child: const Icon(Icons.camera_alt, color: Colors.white, size: 28),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Enhancement toggle button if enhanced image exists
-                if (_enhancedImageBytes != null)
-                  Positioned(
-                    top: 18,
-                    left: 18,
-                    child: GestureDetector(
-                      onTap: () => setState(() => _showEnhanced = !_showEnhanced),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: _showEnhanced ? AppColors.accent : Colors.black54,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
+                        child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
-                              _showEnhanced ? Icons.auto_awesome : Icons.image_outlined,
-                              size: 14,
-                              color: _showEnhanced ? AppColors.primary : Colors.white,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              _showEnhanced ? '✨ AI Enhanced' : 'Original',
+                            const CircularProgressIndicator(color: AppColors.accent),
+                            const SizedBox(height: 14),
+                            const Text(
+                              'AI Studio Enhancement in progress...',
                               style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: _showEnhanced ? AppColors.primary : Colors.white,
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextButton.icon(
+                              onPressed: _discardAndRetakePhoto,
+                              icon: const Icon(Icons.replay_rounded, size: 16, color: Colors.white70),
+                              label: const Text(
+                                'Cancel & Retake',
+                                style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600),
                               ),
                             ),
                           ],
                         ),
                       ),
                     ),
-                  ),
-              ],
+
+                  // Top Flash & Flip Camera Icons (only in live camera mode)
+                  if (_capturedImageBytes == null)
+                    Positioned(
+                      top: 18,
+                      right: 18,
+                      child: Row(
+                        children: [
+                          _buildSquircleIconButton(
+                            icon: _isFlashOn ? Icons.flash_on_rounded : Icons.flash_off_rounded,
+                            bgColor: _isFlashOn ? const Color(0xFFF5A623) : Colors.white.withValues(alpha: 0.2),
+                            iconColor: _isFlashOn ? AppColors.primary : Colors.white,
+                            onTap: _toggleFlash,
+                          ),
+                          const SizedBox(width: 10),
+                          _buildSquircleIconButton(
+                            icon: Icons.flip_camera_ios_outlined,
+                            bgColor: Colors.white.withValues(alpha: 0.15),
+                            iconColor: Colors.white,
+                            onTap: _flipCamera,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  // Enhancement toggle button if enhanced image exists
+                  if (_enhancedImageBytes != null)
+                    Positioned(
+                      top: 18,
+                      left: 18,
+                      child: GestureDetector(
+                        onTap: () => setState(() => _showEnhanced = !_showEnhanced),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: _showEnhanced ? AppColors.accent : Colors.black87,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.15),
+                                blurRadius: 6,
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                _showEnhanced ? Icons.auto_awesome : Icons.image_outlined,
+                                size: 14,
+                                color: _showEnhanced ? AppColors.primary : Colors.white,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                _showEnhanced ? '✨ AI Enhanced' : 'Original',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: _showEnhanced ? AppColors.primary : Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  // Retake pill button at top right when image is captured
+                  if (_capturedImageBytes != null)
+                    Positioned(
+                      top: 18,
+                      right: 18,
+                      child: InkWell(
+                        onTap: _discardAndRetakePhoto,
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDC2626),
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.2),
+                                blurRadius: 6,
+                              ),
+                            ],
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.replay_rounded, size: 14, color: Colors.white),
+                              SizedBox(width: 6),
+                              Text(
+                                'Retry Photo',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  // Gallery Picker & Big Shutter Button (only in live camera capture mode)
+                  if (_capturedImageBytes == null) ...[
+                    // Gallery Picker at bottom left
+                    Positioned(
+                      bottom: 24,
+                      left: 24,
+                      child: _buildSquircleIconButton(
+                        icon: Icons.photo_library_outlined,
+                        bgColor: Colors.white.withValues(alpha: 0.2),
+                        iconColor: Colors.white,
+                        onTap: _pickFromGallery,
+                      ),
+                    ),
+
+                    // Big Shutter Button at bottom center
+                    Positioned(
+                      bottom: 18,
+                      child: GestureDetector(
+                        onTap: _takePhoto,
+                        child: Container(
+                          width: 72,
+                          height: 72,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 4),
+                          ),
+                          child: Center(
+                            child: Container(
+                              width: 54,
+                              height: 54,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Color(0xFF334155),
+                              ),
+                              child: const Icon(Icons.camera_alt, color: Colors.white, size: 28),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 16),
+        ),
 
-          // Helper text / Next Step Button
-          if (_capturedImageBytes != null) ...[
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton.icon(
-                onPressed: () => setState(() => _step = 2),
-                icon: const Icon(Icons.arrow_forward_rounded, size: 20),
-                label: const Text('Continue to Voice-to-Catalog', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.accent,
-                  foregroundColor: AppColors.primary,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        // Bottom Action Row
+        if (_capturedImageBytes != null) ...[
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: SizedBox(
+                  height: 50,
+                  child: OutlinedButton.icon(
+                    onPressed: _discardAndRetakePhoto,
+                    icon: const Icon(Icons.replay_rounded, size: 18, color: Color(0xFFDC2626)),
+                    label: const Text(
+                      'Retry',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFFDC2626),
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0xFFFCA5A5), width: 1.5),
+                      backgroundColor: const Color(0xFFFEF2F2),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ] else ...[
-            const Center(
-              child: Text(
-                'Center your craft within the frame or pick from gallery',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF8A94A6),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 3,
+                child: SizedBox(
+                  height: 50,
+                  child: ElevatedButton.icon(
+                    onPressed: _goToVoiceStep,
+                    icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+                    label: const Text(
+                      'Continue',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.accent,
+                      foregroundColor: AppColors.primary,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 14),
-            Center(
-              child: TextButton.icon(
-                onPressed: () => setState(() => _step = 2),
-                icon: const Icon(Icons.fast_forward_rounded, size: 16, color: AppColors.primary),
-                label: const Text('Skip photo for now', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ] else ...[
+          const SizedBox(height: 8),
+          const Center(
+            child: Text(
+              'Tap shutter to capture or pick craft photo from gallery',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF8A94A6),
               ),
             ),
-          ],
-          const SizedBox(height: 20),
+          ),
         ],
-      ),
+        const SizedBox(height: 8),
+      ],
     );
   }
 
@@ -487,55 +681,77 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
           const SizedBox(height: 16),
 
           if (_isCataloging)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Column(
-                  children: [
-                    CircularProgressIndicator(color: AppColors.accent),
-                    SizedBox(height: 12),
-                    Text('Analyzing craft with Gemini & Multilingual AI...', style: TextStyle(fontWeight: FontWeight.w600)),
-                  ],
-                ),
-              ),
-            )
-          else ...[
-            // Transcript (Hindi) Card
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
+              margin: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: const Column(
                 children: [
-                  const Text(
-                    'Transcript (Hindi)',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF8A94A6),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
+                  CircularProgressIndicator(color: AppColors.accent),
+                  SizedBox(height: 16),
                   Text(
-                    _transcript,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      height: 1.4,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
-                    ),
+                    'Analyzing craft with Qwen 3.8 on Groq...',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.primary),
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    'Extracting heritage story, SEO tags, labor hours & pricing economics from your photo',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 12, color: Color(0xFF8A94A6)),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 14),
+            )
+          else ...[
+            // Transcript (Hindi) Card - if voice was recorded
+            if (_transcript.isNotEmpty && _recordingComplete) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.mic_rounded, size: 15, color: Color(0xFF15803D)),
+                        SizedBox(width: 6),
+                        Text(
+                          'Recorded Voice Note',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF15803D),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _transcript,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        height: 1.4,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+            ],
 
-            // AI Generated (English) Card
+            // AI Generated (English) Card - Editable
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
@@ -552,7 +768,7 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                       Icon(Icons.auto_awesome, size: 14, color: AppColors.primary),
                       SizedBox(width: 6),
                       Text(
-                        'AI Generated (English)',
+                        'English Listing (Editable)',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
@@ -561,23 +777,37 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _titleEn,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.primary,
+                  const SizedBox(height: 12),
+                  const Text('Product Title (English)',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                  const SizedBox(height: 4),
+                  TextField(
+                    controller: _titleEnCtrl,
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.primary),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    _descriptionEn,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      height: 1.4,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF64748B),
+                  const SizedBox(height: 10),
+                  const Text('Product Description (English)',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                  const SizedBox(height: 4),
+                  TextField(
+                    controller: _descEnCtrl,
+                    maxLines: 3,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF334155), height: 1.4),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
                     ),
                   ),
                 ],
@@ -585,7 +815,7 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
             ),
             const SizedBox(height: 14),
 
-            // AI Generated (Hindi) Card
+            // AI Generated (Hindi) Card - Editable
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
@@ -602,7 +832,7 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                       Icon(Icons.auto_awesome, size: 14, color: Color(0xFF92400E)),
                       SizedBox(width: 6),
                       Text(
-                        'AI Generated (Hindi)',
+                        'Hindi Listing - हिंदी विवरण (Editable)',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
@@ -611,37 +841,265 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    _titleHi,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF92400E),
+                  const SizedBox(height: 12),
+                  const Text('उत्पाद शीर्षक (Title in Hindi)',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF92400E))),
+                  const SizedBox(height: 4),
+                  TextField(
+                    controller: _titleHiCtrl,
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF92400E)),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFFDE68A))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFFDE68A))),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF92400E), width: 1.5)),
                     ),
                   ),
+                  const SizedBox(height: 10),
+                  const Text('उत्पाद का विवरण (Description in Hindi)',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF92400E))),
                   const SizedBox(height: 4),
-                  Text(
-                    _descriptionHi,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF92400E),
+                  TextField(
+                    controller: _descHiCtrl,
+                    maxLines: 3,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF92400E), height: 1.4),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFFDE68A))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFFDE68A))),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF92400E), width: 1.5)),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
 
-            // Chips Row
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _StudioChip(label: _category),
-                ..._materials.map((m) => _StudioChip(label: m)),
-                ..._tags.map((t) => _StudioChip(label: t)),
-              ],
+            // Artisan Heritage & Craft Story Card - Editable
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.history_edu_rounded, size: 16, color: AppColors.primary),
+                      SizedBox(width: 6),
+                      Text(
+                        'Artisan Heritage Story (Editable)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _storyCtrl,
+                    maxLines: 3,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF334155), height: 1.4),
+                    decoration: InputDecoration(
+                      hintText: 'Generational story and traditional craft heritage...',
+                      hintStyle: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Category, Materials & SEO Tags Card - Editable
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.sell_outlined, size: 14, color: AppColors.primary),
+                      SizedBox(width: 6),
+                      Text(
+                        'Category, Materials & SEO Tags',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Category',
+                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                            const SizedBox(height: 4),
+                            TextField(
+                              controller: _categoryCtrl,
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary),
+                              decoration: InputDecoration(
+                                filled: true,
+                                fillColor: const Color(0xFFF8FAFC),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Raw Materials',
+                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                            const SizedBox(height: 4),
+                            TextField(
+                              controller: _materialsCtrl,
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary),
+                              decoration: InputDecoration(
+                                filled: true,
+                                fillColor: const Color(0xFFF8FAFC),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Text('SEO Tags (Comma Separated)',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                  const SizedBox(height: 4),
+                  TextField(
+                    controller: _tagsCtrl,
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary),
+                    decoration: InputDecoration(
+                      hintText: 'e.g. Handloom, Pure Silk, GI Tag, Banarasi',
+                      hintStyle: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // AI Economics (Labor Hours & Material Cost) Card - Editable
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.monetization_on_outlined, size: 14, color: AppColors.primary),
+                      SizedBox(width: 6),
+                      Text(
+                        'Estimated Labor & Material Cost (AI Auto-filled)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Labor Hours',
+                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                            const SizedBox(height: 4),
+                            TextField(
+                              controller: _laborHoursCtrl,
+                              keyboardType: TextInputType.number,
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary),
+                              decoration: InputDecoration(
+                                filled: true,
+                                fillColor: const Color(0xFFF8FAFC),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Material Cost (₹)',
+                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                            const SizedBox(height: 4),
+                            TextField(
+                              controller: _materialCostCtrl,
+                              keyboardType: TextInputType.number,
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary),
+                              decoration: InputDecoration(
+                                filled: true,
+                                fillColor: const Color(0xFFF8FAFC),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
           const SizedBox(height: 24),
@@ -652,6 +1110,7 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
             height: 54,
             child: ElevatedButton(
               onPressed: () {
+                _saveCurrentDraft();
                 setState(() => _step = 3);
                 _calculatePriceWithAi();
               },
@@ -1038,22 +1497,100 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
 
   // ── Action Handlers ──────────────────────────────────────────────
 
-  Future<void> _takePhoto() async {
+  Future<void> _initInAppCamera() async {
     try {
-      final img = await _picker.pickImage(source: ImageSource.camera, maxWidth: 1280, maxHeight: 1280);
-      if (img != null) {
-        final bytes = await img.readAsBytes();
+      _cameras = await availableCameras();
+      if (_cameras.isNotEmpty) {
+        final backCam = _cameras.firstWhere(
+          (c) => c.lensDirection == CameraLensDirection.back,
+          orElse: () => _cameras.first,
+        );
+        await _setupCameraController(backCam);
+      }
+    } catch (_) {
+      // Fallback gracefully on devices/emulators without camera hardware
+    }
+  }
+
+  Future<void> _setupCameraController(CameraDescription camera) async {
+    final controller = CameraController(
+      camera,
+      ResolutionPreset.high,
+      enableAudio: false,
+    );
+    _cameraController = controller;
+    try {
+      await controller.initialize();
+      if (mounted) {
+        setState(() => _isCameraReady = true);
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isCameraReady = false);
+      }
+    }
+  }
+
+  Future<void> _toggleFlash() async {
+    if (_cameraController == null || !_cameraController!.value.isInitialized) {
+      setState(() => _isFlashOn = !_isFlashOn);
+      return;
+    }
+    try {
+      final newMode = _isFlashOn ? FlashMode.off : FlashMode.torch;
+      await _cameraController!.setFlashMode(newMode);
+      setState(() => _isFlashOn = !_isFlashOn);
+    } catch (_) {
+      setState(() => _isFlashOn = !_isFlashOn);
+    }
+  }
+
+  Future<void> _flipCamera() async {
+    if (_cameras.length < 2) return;
+    final currentDirection = _cameraController?.description.lensDirection;
+    final nextCamera = _cameras.firstWhere(
+      (c) => c.lensDirection != currentDirection,
+      orElse: () => _cameras.first,
+    );
+    setState(() {
+      _isCameraReady = false;
+    });
+    await _cameraController?.dispose();
+    await _setupCameraController(nextCamera);
+  }
+
+  Future<void> _takePhoto() async {
+    // 1. In-app camera capture (does not leave the screen)
+    if (_cameraController != null && _cameraController!.value.isInitialized) {
+      try {
+        final xfile = await _cameraController!.takePicture();
+        final bytes = await xfile.readAsBytes();
         setState(() {
           _capturedImageBytes = bytes;
           _enhancedImageBytes = null;
+          _hasVisionCatalogRun = false;
         });
         _enhanceImageAsync(bytes);
-      } else if (_capturedImageBytes == null) {
-        // Fallback for emulator / environments without physical camera: pick from gallery
-        _pickFromGallery();
+        return;
+      } catch (_) {
+        // Fallback to gallery if takePicture fails
       }
-    } catch (_) {
-      _pickFromGallery();
+    }
+
+    // 2. Fallback if camera hardware is unavailable
+    _pickFromGallery();
+  }
+
+  void _discardAndRetakePhoto() {
+    setState(() {
+      _capturedImageBytes = null;
+      _enhancedImageBytes = null;
+      _showEnhanced = false;
+      _hasVisionCatalogRun = false;
+      _isEnhancing = false;
+    });
+    if (_cameraController == null || !_cameraController!.value.isInitialized) {
+      _initInAppCamera();
     }
   }
 
@@ -1065,6 +1602,7 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
         setState(() {
           _capturedImageBytes = bytes;
           _enhancedImageBytes = null;
+          _hasVisionCatalogRun = false;
         });
         _enhanceImageAsync(bytes);
       }
@@ -1081,11 +1619,44 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
           _enhancedImageBytes = enhanced;
           _showEnhanced = true;
         });
+        // Auto-trigger Groq Qwen 3.8 vision catalog on the studio enhanced image
+        _triggerAutoVisionCatalog(enhanced);
       }
     } catch (_) {
-      // Keep original image cleanly if offline
+      // Keep original image cleanly if offline, still trigger vision catalog on original
+      if (mounted) {
+        _triggerAutoVisionCatalog(bytes);
+      }
     } finally {
       if (mounted) setState(() => _isEnhancing = false);
+    }
+  }
+
+  void _goToVoiceStep() {
+    _saveCurrentDraft();
+    setState(() => _step = 2);
+    final imageBytes = _enhancedImageBytes ?? _capturedImageBytes;
+    if (!_hasVisionCatalogRun && imageBytes != null) {
+      _triggerAutoVisionCatalog(imageBytes);
+    }
+  }
+
+  Future<void> _triggerAutoVisionCatalog(Uint8List bytes) async {
+    if (_hasVisionCatalogRun) return;
+    _hasVisionCatalogRun = true;
+    setState(() => _isCataloging = true);
+    try {
+      final api = ref.read(apiClientProvider);
+      final catalog = await api.generateCatalogFromImage(bytes, lang: 'Hindi');
+      if (mounted) {
+        _applyCatalog(catalog);
+      }
+    } catch (_) {
+      // Keep fallback defaults if network is offline
+    } finally {
+      if (mounted) {
+        setState(() => _isCataloging = false);
+      }
     }
   }
 
@@ -1155,13 +1726,44 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
 
   void _applyCatalog(ProductCatalogGenerated catalog) {
     setState(() {
-      if (catalog.titleEn.isNotEmpty) _titleEn = catalog.titleEn;
-      if (catalog.titleHi.isNotEmpty) _titleHi = catalog.titleHi;
-      if (catalog.descriptionEn.isNotEmpty) _descriptionEn = catalog.descriptionEn;
-      if (catalog.descriptionHi.isNotEmpty) _descriptionHi = catalog.descriptionHi;
-      if (catalog.category.isNotEmpty) _category = catalog.category;
-      if (catalog.materials.isNotEmpty) _materials = catalog.materials;
-      if (catalog.tags.isNotEmpty) _tags = catalog.tags;
+      if (catalog.titleEn.isNotEmpty) {
+        _titleEn = catalog.titleEn;
+        _titleEnCtrl.text = catalog.titleEn;
+      }
+      if (catalog.titleHi.isNotEmpty) {
+        _titleHi = catalog.titleHi;
+        _titleHiCtrl.text = catalog.titleHi;
+      }
+      if (catalog.descriptionEn.isNotEmpty) {
+        _descriptionEn = catalog.descriptionEn;
+        _descEnCtrl.text = catalog.descriptionEn;
+      }
+      if (catalog.descriptionHi.isNotEmpty) {
+        _descriptionHi = catalog.descriptionHi;
+        _descHiCtrl.text = catalog.descriptionHi;
+      }
+      if (catalog.story != null && catalog.story!.isNotEmpty) {
+        _story = catalog.story!;
+        _storyCtrl.text = catalog.story!;
+      }
+      if (catalog.category.isNotEmpty) {
+        _category = catalog.category;
+        _categoryCtrl.text = catalog.category;
+      }
+      if (catalog.materials.isNotEmpty) {
+        _materials = catalog.materials;
+        _materialsCtrl.text = catalog.materials.join(', ');
+      }
+      if (catalog.tags.isNotEmpty) {
+        _tags = catalog.tags;
+        _tagsCtrl.text = catalog.tags.join(', ');
+      }
+      if (catalog.estimatedLaborHours != null && catalog.estimatedLaborHours! > 0) {
+        _laborHoursCtrl.text = catalog.estimatedLaborHours!.toStringAsFixed(0);
+      }
+      if (catalog.estimatedMaterialCost != null && catalog.estimatedMaterialCost! > 0) {
+        _materialCostCtrl.text = catalog.estimatedMaterialCost!.toStringAsFixed(0);
+      }
       if (catalog.rawTranscript != null && catalog.rawTranscript!.isNotEmpty) {
         _transcript = '"${catalog.rawTranscript}"';
       }
@@ -1173,15 +1775,19 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
     final matCost = double.tryParse(_materialCostCtrl.text) ?? 450.0;
     final hours = double.tryParse(_laborHoursCtrl.text) ?? 8.0;
 
+    final cat = _categoryCtrl.text.trim().isNotEmpty ? _categoryCtrl.text.trim() : _category;
+    final mats = _materialsCtrl.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    final tags = _tagsCtrl.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+
     try {
       final api = ref.read(apiClientProvider);
       final breakdown = await api.predictPrice(
-        craftCategory: _category,
+        craftCategory: cat,
         rawMaterialCost: matCost,
         laborHours: hours,
-        materialType: _materials.isNotEmpty ? _materials.first : 'Silk',
+        materialType: mats.isNotEmpty ? mats.first : 'Silk',
         regionState: 'Uttar Pradesh',
-        giTag: _tags.any((t) => t.toLowerCase().contains('gi')),
+        giTag: tags.any((t) => t.toLowerCase().contains('gi')),
       );
 
       if (mounted) {
@@ -1208,23 +1814,39 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
   Future<void> _publishListing() async {
     setState(() => _isPublishing = true);
 
+    final titleEn = _titleEnCtrl.text.trim().isNotEmpty ? _titleEnCtrl.text.trim() : _titleEn;
+    final titleHi = _titleHiCtrl.text.trim().isNotEmpty ? _titleHiCtrl.text.trim() : _titleHi;
+    final descEn = _descEnCtrl.text.trim().isNotEmpty ? _descEnCtrl.text.trim() : _descriptionEn;
+    final descHi = _descHiCtrl.text.trim().isNotEmpty ? _descHiCtrl.text.trim() : _descriptionHi;
+    final cat = _categoryCtrl.text.trim().isNotEmpty ? _categoryCtrl.text.trim() : _category;
+    final mats = _materialsCtrl.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    final tags = _tagsCtrl.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+
+    final imageBytes = _enhancedImageBytes ?? _capturedImageBytes;
+    String? imageUrl;
+    if (imageBytes != null && imageBytes.isNotEmpty) {
+      imageUrl = 'data:image/jpeg;base64,${base64Encode(imageBytes)}';
+    }
+
     try {
       final api = ref.read(apiClientProvider);
       await api.createProduct(
-        titleEn: _titleEn,
-        titleHi: _titleHi,
-        descriptionEn: _descriptionEn,
-        descriptionHi: _descriptionHi,
-        category: _category,
-        materials: _materials,
-        tags: _tags,
+        titleEn: titleEn,
+        titleHi: titleHi,
+        descriptionEn: descEn,
+        descriptionHi: descHi,
+        category: cat,
+        materials: mats.isNotEmpty ? mats : _materials,
+        tags: tags.isNotEmpty ? tags : _tags,
         retailPrice: _currentPrice,
         b2bPrice: _currentPrice * 0.75,
         stock: 10,
+        imageUrl: imageUrl,
       );
 
       ref.invalidate(artisanProductsProvider);
       ref.invalidate(marketplaceProductsProvider);
+      await ref.read(draftStorageServiceProvider).clearDraft();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1248,31 +1870,185 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
       if (mounted) setState(() => _isPublishing = false);
     }
   }
-}
 
-class _StudioChip extends StatelessWidget {
-  final String label;
-  const _StudioChip({required this.label});
+  // ── Draft Management & Back Handling ─────────────────────────────
+  Future<void> _saveCurrentDraft() async {
+    try {
+      final imageBytes = _enhancedImageBytes ?? _capturedImageBytes;
+      final draft = ProductDraft(
+        id: 'active_draft',
+        currentPhase: _step,
+        enhancedImageBase64: imageBytes != null ? base64Encode(imageBytes) : null,
+        titleEn: _titleEnCtrl.text.trim(),
+        titleHi: _titleHiCtrl.text.trim(),
+        descEn: _descEnCtrl.text.trim(),
+        descHi: _descHiCtrl.text.trim(),
+        story: _storyCtrl.text.trim(),
+        category: _categoryCtrl.text.trim(),
+        tags: _tagsCtrl.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(),
+        materials: _materialsCtrl.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(),
+        materialCost: double.tryParse(_materialCostCtrl.text.trim()),
+        laborHours: double.tryParse(_laborHoursCtrl.text.trim()),
+        retailPrice: _currentPrice,
+        b2bPrice: _currentPrice * 0.75,
+        lastSaved: DateTime.now(),
+      );
+      await ref.read(draftStorageServiceProvider).saveDraft(draft);
+    } catch (_) {}
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: AppColors.primary,
+  Future<void> _handleStudioBack() async {
+    if (_step > 1) {
+      await _saveCurrentDraft();
+      if (mounted) {
+        setState(() => _step--);
+      }
+      return;
+    }
+
+    final hasWork = _capturedImageBytes != null ||
+        _titleEnCtrl.text.trim().isNotEmpty ||
+        _storyCtrl.text.trim().isNotEmpty ||
+        _manualDescCtrl.text.trim().isNotEmpty;
+
+    if (hasWork) {
+      await _saveCurrentDraft();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Draft saved. You can resume editing anytime.'),
+            duration: Duration(seconds: 2),
+            backgroundColor: AppColors.primary,
+          ),
+        );
+      }
+    }
+
+    if (mounted) {
+      context.pop();
+    }
+  }
+
+  Future<void> _checkForSavedDraft() async {
+    try {
+      final draft = await ref.read(draftStorageServiceProvider).loadDraft();
+      if (draft == null || !mounted) return;
+
+      final hasContent = draft.enhancedImageBase64 != null ||
+          (draft.titleEn != null && draft.titleEn!.isNotEmpty) ||
+          (draft.story != null && draft.story!.isNotEmpty);
+      if (!hasContent) return;
+
+      final draftTitle = (draft.titleEn != null && draft.titleEn!.isNotEmpty)
+          ? draft.titleEn!
+          : 'Craft Listing Draft';
+
+      final shouldResume = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.restore_page_rounded, color: Color(0xFFF5A623)),
+              SizedBox(width: 8),
+              Text('Resume Draft?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            ],
+          ),
+          content: Text(
+            'You have an unfinished craft draft for "$draftTitle". Would you like to resume editing where you left off?',
+            style: const TextStyle(fontSize: 14, color: Color(0xFF334155)),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Discard', style: TextStyle(color: Color(0xFFDC2626), fontWeight: FontWeight.w600)),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: const Text('Resume Draft', style: TextStyle(fontWeight: FontWeight.w700)),
+            ),
+          ],
         ),
+      );
+
+      if (shouldResume == true && mounted) {
+        _restoreDraft(draft);
+      } else if (shouldResume == false) {
+        await ref.read(draftStorageServiceProvider).clearDraft();
+      }
+    } catch (_) {}
+  }
+
+  void _restoreDraft(ProductDraft draft) {
+    setState(() {
+      _step = draft.currentPhase.clamp(1, 3);
+      if (draft.enhancedBytes != null) {
+        _capturedImageBytes = draft.enhancedBytes;
+        _enhancedImageBytes = draft.enhancedBytes;
+        _showEnhanced = true;
+      }
+      if (draft.titleEn != null && draft.titleEn!.isNotEmpty) {
+        _titleEn = draft.titleEn!;
+        _titleEnCtrl.text = draft.titleEn!;
+      }
+      if (draft.titleHi != null && draft.titleHi!.isNotEmpty) {
+        _titleHi = draft.titleHi!;
+        _titleHiCtrl.text = draft.titleHi!;
+      }
+      if (draft.descEn != null && draft.descEn!.isNotEmpty) {
+        _descriptionEn = draft.descEn!;
+        _descEnCtrl.text = draft.descEn!;
+      }
+      if (draft.descHi != null && draft.descHi!.isNotEmpty) {
+        _descriptionHi = draft.descHi!;
+        _descHiCtrl.text = draft.descHi!;
+      }
+      if (draft.story != null && draft.story!.isNotEmpty) {
+        _story = draft.story!;
+        _storyCtrl.text = draft.story!;
+      }
+      if (draft.category != null && draft.category!.isNotEmpty) {
+        _category = draft.category!;
+        _categoryCtrl.text = draft.category!;
+      }
+      if (draft.materials.isNotEmpty) {
+        _materials = draft.materials;
+        _materialsCtrl.text = draft.materials.join(', ');
+      }
+      if (draft.tags.isNotEmpty) {
+        _tags = draft.tags;
+        _tagsCtrl.text = draft.tags.join(', ');
+      }
+      if (draft.materialCost != null) {
+        _materialCostCtrl.text = draft.materialCost!.toInt().toString();
+      }
+      if (draft.laborHours != null) {
+        _laborHoursCtrl.text = draft.laborHours!.toInt().toString();
+      }
+      if (draft.retailPrice != null) {
+        _currentPrice = draft.retailPrice!;
+        _breakevenPrice = (_currentPrice * 0.5).clamp(100, _currentPrice);
+        _premiumPrice = _currentPrice * 1.5;
+      }
+      _hasVisionCatalogRun = true;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Draft restored successfully.'),
+        duration: Duration(seconds: 2),
+        backgroundColor: Color(0xFF15803D),
       ),
     );
   }
 }
+
 
 class _DashedRectPainter extends CustomPainter {
   final Color color;
