@@ -48,7 +48,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           state.matchedLocation == RouteNames.splash ||
           state.matchedLocation == RouteNames.login;
 
-      if (auth.isAuthenticated && isOnboarding) {
+      final isActivelyAuthenticating =
+          state.matchedLocation == RouteNames.login ||
+          state.matchedLocation == RouteNames.onboardingRegister ||
+          state.matchedLocation == RouteNames.onboardingOtp;
+
+      if (auth.isAuthenticated && isOnboarding && !isActivelyAuthenticating) {
         // Redirect authenticated users to their home screen
         return switch (auth.status) {
           AuthStatus.authenticatedArtisan => RouteNames.artisanHome,

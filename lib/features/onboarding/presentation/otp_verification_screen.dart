@@ -8,6 +8,7 @@ import '../../../core/storage/secure_storage.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_mode_notifier.dart';
 import '../../../shared/providers/auth_provider.dart';
+import '../../../shared/widgets/auth_loading_banner.dart';
 
 class OtpVerificationScreen extends ConsumerStatefulWidget {
   final String phone;
@@ -25,6 +26,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
   bool _isPhoneVerified = false;
   bool _canResend = false;
   bool _isVerifying = false;
+  bool _isLoggingIn = false;
   int _secondsLeft = 25;
   Timer? _timer;
 
@@ -76,7 +78,10 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
         if (res['is_registered'] == true && res['access_token'] != null) {
           final storage = ref.read(secureStorageProvider);
           await storage.saveAccessToken(res['access_token'] as String);
+          setState(() => _isLoggingIn = true);
           await ref.read(authProvider.notifier).refreshUser();
+          await Future.delayed(const Duration(milliseconds: 750));
+          if (!mounted) return;
           final authState = ref.read(authProvider);
           authState.whenData((auth) {
             context.go(switch (auth.status) {
@@ -113,6 +118,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
   }
 
   void _handleBack() {
+    if (_isLoggingIn) return;
     if (context.canPop()) {
       context.pop();
     } else {
@@ -130,11 +136,21 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
       },
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: _isPhoneVerified ? _buildVerifiedView() : _buildOtpEntryView(),
-          ),
+        body: Stack(
+          children: [
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: _isPhoneVerified ? _buildVerifiedView() : _buildOtpEntryView(),
+              ),
+            ),
+            if (_isLoggingIn)
+              const AuthLoadingOverlay(
+                phase: AuthLoadingPhase.success,
+                title: 'Phone Verified!',
+                message: 'Welcome back! Preparing your workspace...',
+              ),
+          ],
         ),
       ),
     );

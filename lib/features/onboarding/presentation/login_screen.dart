@@ -5,6 +5,7 @@ import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_mode_notifier.dart';
 import '../../../shared/providers/auth_provider.dart';
+import '../../../shared/widgets/auth_loading_banner.dart';
 import '../../../shared/widgets/server_config_dialog.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -19,6 +20,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
+  bool _isAuthenticating = false;
+  AuthLoadingPhase _authPhase = AuthLoadingPhase.loading;
+  String _loadingTitle = 'Signing In...';
+  String _loadingMessage = 'Connecting securely to कलाSetu server...';
+  String? _errorMessage;
+
   @override
   void dispose() {
     _usernameCtrl.dispose();
@@ -27,6 +34,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   void _handleBack() {
+    if (_isAuthenticating && _authPhase == AuthLoadingPhase.loading) return;
     if (context.canPop()) {
       context.pop();
     } else {
@@ -37,7 +45,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
-    final isLoading = authState.isLoading;
+    final isLoading = authState.isLoading || _isAuthenticating;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -48,8 +56,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       },
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
-        body: SafeArea(
-          child: SingleChildScrollView(
+        body: Stack(
+          children: [
+            SafeArea(
+              child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Form(
               key: _formKey,
@@ -254,9 +264,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
         ),
+        if (_isAuthenticating)
+          AuthLoadingOverlay(
+            phase: _authPhase,
+            title: _loadingTitle,
+            message: _loadingMessage,
+            errorMessage: _errorMessage,
+            onDismissError: () {
+              setState(() {
+                _isAuthenticating = false;
+              });
+            },
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   InputDecoration _inputDecoration(String hint, IconData icon, bool isDark) {
     return InputDecoration(
@@ -283,23 +307,68 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
-    final authNotifier = ref.read(authProvider.notifier);
-    await authNotifier.login(
-      _usernameCtrl.text.trim(),
-      _passwordCtrl.text.trim(),
-    );
+    FocusScope.of(context).unfocus();
 
-    if (!mounted) return;
-    final authState = ref.read(authProvider);
-    authState.whenData((auth) {
-      if (auth.isAuthenticated) {
+    setState(() {
+      _isAuthenticating = true;
+      _authPhase = AuthLoadingPhase.loading;
+      _loadingTitle = 'Signing In...';
+      _loadingMessage = 'Connecting securely to कलाSetu server...';
+      _errorMessage = null;
+    });
+
+    try {
+      final authNotifier = ref.read(authProvider.notifier);
+      await authNotifier.login(
+        _usernameCtrl.text.trim(),
+        _passwordCtrl.text.trim(),
+      );
+
+      if (!mounted) return;
+      final authState = ref.read(authProvider);
+
+      if (authState.hasError) {
+        setState(() {
+          _authPhase = AuthLoadingPhase.error;
+          _loadingTitle = 'Sign In Failed';
+          _errorMessage = authState.error.toString().replaceAll('Exception: ', '');
+        });
+        return;
+      }
+
+      final auth = authState.valueOrNull;
+      if (auth != null && auth.isAuthenticated) {
+        final name = auth.user?.fullName.isNotEmpty == true ? auth.user!.fullName : 'back';
+        setState(() {
+          _authPhase = AuthLoadingPhase.success;
+          _loadingTitle = 'Welcome, $name!';
+          _loadingMessage = 'Authentication successful. Preparing your dashboard...';
+        });
+
+        // Smooth transition animation delay so user experiences the success banner
+        await Future.delayed(const Duration(milliseconds: 750));
+        if (!mounted) return;
+
         context.go(switch (auth.status) {
           AuthStatus.authenticatedArtisan => RouteNames.artisanHome,
           AuthStatus.authenticatedAggregator => RouteNames.aggregatorHome,
           AuthStatus.authenticatedBuyer => RouteNames.buyerMarketplace,
           _ => RouteNames.onboardingLanguage,
         });
+      } else {
+        setState(() {
+          _authPhase = AuthLoadingPhase.error;
+          _loadingTitle = 'Sign In Failed';
+          _errorMessage = 'Invalid username or password. Please try again.';
+        });
       }
-    });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _authPhase = AuthLoadingPhase.error;
+        _loadingTitle = 'Sign In Failed';
+        _errorMessage = e.toString().replaceAll('Exception: ', '');
+      });
+    }
   }
 }

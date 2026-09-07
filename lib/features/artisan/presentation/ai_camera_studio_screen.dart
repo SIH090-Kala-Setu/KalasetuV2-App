@@ -334,13 +334,13 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                   if (_isEnhancing)
                     Container(
                       color: Colors.black.withValues(alpha: 0.65),
-                      child: const Center(
+                      child: Center(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            CircularProgressIndicator(color: AppColors.accent),
-                            SizedBox(height: 14),
-                            Text(
+                            const CircularProgressIndicator(color: AppColors.accent),
+                            const SizedBox(height: 14),
+                            const Text(
                               'AI Studio Enhancement in progress...',
                               style: TextStyle(
                                 color: Colors.white,
@@ -348,33 +348,43 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
+                            const SizedBox(height: 12),
+                            TextButton.icon(
+                              onPressed: _discardAndRetakePhoto,
+                              icon: const Icon(Icons.replay_rounded, size: 16, color: Colors.white70),
+                              label: const Text(
+                                'Cancel & Retake',
+                                style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600),
+                              ),
+                            ),
                           ],
                         ),
                       ),
                     ),
 
-                  // Top Flash & Flip Camera Icons
-                  Positioned(
-                    top: 18,
-                    right: 18,
-                    child: Row(
-                      children: [
-                        _buildSquircleIconButton(
-                          icon: _isFlashOn ? Icons.flash_on_rounded : Icons.flash_off_rounded,
-                          bgColor: _isFlashOn ? const Color(0xFFF5A623) : Colors.white.withValues(alpha: 0.2),
-                          iconColor: _isFlashOn ? AppColors.primary : Colors.white,
-                          onTap: _toggleFlash,
-                        ),
-                        const SizedBox(width: 10),
-                        _buildSquircleIconButton(
-                          icon: Icons.flip_camera_ios_outlined,
-                          bgColor: Colors.white.withValues(alpha: 0.15),
-                          iconColor: Colors.white,
-                          onTap: _flipCamera,
-                        ),
-                      ],
+                  // Top Flash & Flip Camera Icons (only in live camera mode)
+                  if (_capturedImageBytes == null)
+                    Positioned(
+                      top: 18,
+                      right: 18,
+                      child: Row(
+                        children: [
+                          _buildSquircleIconButton(
+                            icon: _isFlashOn ? Icons.flash_on_rounded : Icons.flash_off_rounded,
+                            bgColor: _isFlashOn ? const Color(0xFFF5A623) : Colors.white.withValues(alpha: 0.2),
+                            iconColor: _isFlashOn ? AppColors.primary : Colors.white,
+                            onTap: _toggleFlash,
+                          ),
+                          const SizedBox(width: 10),
+                          _buildSquircleIconButton(
+                            icon: Icons.flip_camera_ios_outlined,
+                            bgColor: Colors.white.withValues(alpha: 0.15),
+                            iconColor: Colors.white,
+                            onTap: _flipCamera,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
 
                   // Enhancement toggle button if enhanced image exists
                   if (_enhancedImageBytes != null)
@@ -386,8 +396,14 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: _showEnhanced ? AppColors.accent : Colors.black54,
+                            color: _showEnhanced ? AppColors.accent : Colors.black87,
                             borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.15),
+                                blurRadius: 6,
+                              ),
+                            ],
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -412,64 +428,86 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                       ),
                     ),
 
-                  // Gallery Picker at bottom left
-                  Positioned(
-                    bottom: 24,
-                    left: 24,
-                    child: _buildSquircleIconButton(
-                      icon: Icons.photo_library_outlined,
-                      bgColor: Colors.white.withValues(alpha: 0.2),
-                      iconColor: Colors.white,
-                      onTap: _pickFromGallery,
-                    ),
-                  ),
-
-                  // Big Shutter Button at bottom center
-                  Positioned(
-                    bottom: 18,
-                    child: GestureDetector(
-                      onTap: _takePhoto,
-                      child: Container(
-                        width: 72,
-                        height: 72,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 4),
-                        ),
-                        child: Center(
-                          child: Container(
-                            width: 54,
-                            height: 54,
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Color(0xFF334155),
-                            ),
-                            child: const Icon(Icons.camera_alt, color: Colors.white, size: 28),
+                  // Retake pill button at top right when image is captured
+                  if (_capturedImageBytes != null)
+                    Positioned(
+                      top: 18,
+                      right: 18,
+                      child: InkWell(
+                        onTap: _discardAndRetakePhoto,
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDC2626),
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.2),
+                                blurRadius: 6,
+                              ),
+                            ],
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.replay_rounded, size: 14, color: Colors.white),
+                              SizedBox(width: 6),
+                              Text(
+                                'Retry Photo',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
-                  ),
 
-                  // Retake / Reset at bottom right when image is captured
-                  if (_capturedImageBytes != null)
+                  // Gallery Picker & Big Shutter Button (only in live camera capture mode)
+                  if (_capturedImageBytes == null) ...[
+                    // Gallery Picker at bottom left
                     Positioned(
                       bottom: 24,
-                      right: 24,
+                      left: 24,
                       child: _buildSquircleIconButton(
-                        icon: Icons.refresh_rounded,
+                        icon: Icons.photo_library_outlined,
                         bgColor: Colors.white.withValues(alpha: 0.2),
                         iconColor: Colors.white,
-                        onTap: () {
-                          setState(() {
-                            _capturedImageBytes = null;
-                            _enhancedImageBytes = null;
-                            _showEnhanced = false;
-                            _hasVisionCatalogRun = false;
-                          });
-                        },
+                        onTap: _pickFromGallery,
                       ),
                     ),
+
+                    // Big Shutter Button at bottom center
+                    Positioned(
+                      bottom: 18,
+                      child: GestureDetector(
+                        onTap: _takePhoto,
+                        child: Container(
+                          width: 72,
+                          height: 72,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 4),
+                          ),
+                          child: Center(
+                            child: Container(
+                              width: 54,
+                              height: 54,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Color(0xFF334155),
+                              ),
+                              child: const Icon(Icons.camera_alt, color: Colors.white, size: 28),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -479,20 +517,53 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
         // Bottom Action Row
         if (_capturedImageBytes != null) ...[
           const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton.icon(
-              onPressed: _goToVoiceStep,
-              icon: const Icon(Icons.arrow_forward_rounded, size: 20),
-              label: const Text('Continue to Voice-to-Catalog', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.accent,
-                foregroundColor: AppColors.primary,
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: SizedBox(
+                  height: 50,
+                  child: OutlinedButton.icon(
+                    onPressed: _discardAndRetakePhoto,
+                    icon: const Icon(Icons.replay_rounded, size: 18, color: Color(0xFFDC2626)),
+                    label: const Text(
+                      'Retry',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFFDC2626),
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0xFFFCA5A5), width: 1.5),
+                      backgroundColor: const Color(0xFFFEF2F2),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 3,
+                child: SizedBox(
+                  height: 50,
+                  child: ElevatedButton.icon(
+                    onPressed: _goToVoiceStep,
+                    icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+                    label: const Text(
+                      'Continue',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.accent,
+                      foregroundColor: AppColors.primary,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ] else ...[
           const SizedBox(height: 8),
@@ -1508,6 +1579,19 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
 
     // 2. Fallback if camera hardware is unavailable
     _pickFromGallery();
+  }
+
+  void _discardAndRetakePhoto() {
+    setState(() {
+      _capturedImageBytes = null;
+      _enhancedImageBytes = null;
+      _showEnhanced = false;
+      _hasVisionCatalogRun = false;
+      _isEnhancing = false;
+    });
+    if (_cameraController == null || !_cameraController!.value.isInitialized) {
+      _initInAppCamera();
+    }
   }
 
   Future<void> _pickFromGallery() async {

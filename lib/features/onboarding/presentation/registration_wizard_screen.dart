@@ -5,6 +5,7 @@ import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_mode_notifier.dart';
 import '../../../shared/providers/auth_provider.dart';
+import '../../../shared/widgets/auth_loading_banner.dart';
 
 class RegistrationWizardScreen extends ConsumerStatefulWidget {
   final String role;
@@ -18,6 +19,11 @@ class RegistrationWizardScreen extends ConsumerStatefulWidget {
 class _RegistrationWizardScreenState extends ConsumerState<RegistrationWizardScreen> {
   int _part = 0; // 0: Personal, 1: Craft, 2: Identity & Bank KYC, 3: Success
   bool _isSubmitting = false;
+  bool _isRegistering = false;
+  AuthLoadingPhase _registerPhase = AuthLoadingPhase.loading;
+  String _registerTitle = 'Creating Your Account...';
+  String _registerMessage = 'Registering your profile with कलाSetu...';
+  String? _registerError;
 
   final _fullNameCtrl = TextEditingController(text: 'Ramesh Sharma');
   final _usernameCtrl = TextEditingController(text: 'ramesh_weaver');
@@ -71,10 +77,12 @@ class _RegistrationWizardScreenState extends ConsumerState<RegistrationWizardScr
       },
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
+        body: Stack(
+          children: [
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 12),
@@ -203,8 +211,23 @@ class _RegistrationWizardScreenState extends ConsumerState<RegistrationWizardScr
           ),
         ),
       ),
-    ),
-  );
+      if (_isRegistering)
+        AuthLoadingOverlay(
+          phase: _registerPhase,
+          title: _registerTitle,
+          message: _registerMessage,
+          errorMessage: _registerError,
+          onDismissError: () {
+            setState(() {
+              _isRegistering = false;
+              _isSubmitting = false;
+            });
+          },
+        ),
+    ],
+  ),
+),
+);
 }
 
   List<Widget> _buildPersonalStep(bool isDark) {
@@ -382,8 +405,14 @@ class _RegistrationWizardScreenState extends ConsumerState<RegistrationWizardScr
       return;
     }
 
-    setState(() => _isSubmitting = true);
-    await Future.delayed(const Duration(milliseconds: 600));
+    setState(() {
+      _isSubmitting = true;
+      _isRegistering = true;
+      _registerPhase = AuthLoadingPhase.loading;
+      _registerTitle = 'Creating Your Account...';
+      _registerMessage = 'Saving your craft profile and identity with कलाSetu...';
+      _registerError = null;
+    });
 
     try {
       final auth = ref.read(authProvider.notifier);
@@ -398,12 +427,38 @@ class _RegistrationWizardScreenState extends ConsumerState<RegistrationWizardScr
         district: _districtCtrl.text.trim(),
         aadhaarNumber: _aadhaarCtrl.text.trim(),
       );
-    } catch (_) {}
 
-    if (mounted) {
+      if (!mounted) return;
+      final authState = ref.read(authProvider);
+      if (authState.hasError) {
+        setState(() {
+          _registerPhase = AuthLoadingPhase.error;
+          _registerTitle = 'Registration Failed';
+          _registerError = authState.error.toString().replaceAll('Exception: ', '');
+        });
+        return;
+      }
+
+      setState(() {
+        _registerPhase = AuthLoadingPhase.success;
+        _registerTitle = 'Registration Submitted!';
+        _registerMessage = 'Account created successfully. Preparing your workspace...';
+      });
+
+      await Future.delayed(const Duration(milliseconds: 750));
+      if (!mounted) return;
+
       setState(() {
         _isSubmitting = false;
+        _isRegistering = false;
         _part = 3;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _registerPhase = AuthLoadingPhase.error;
+        _registerTitle = 'Registration Failed';
+        _registerError = e.toString().replaceAll('Exception: ', '');
       });
     }
   }
