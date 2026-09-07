@@ -1822,6 +1822,12 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
     final mats = _materialsCtrl.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
     final tags = _tagsCtrl.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
 
+    final imageBytes = _enhancedImageBytes ?? _capturedImageBytes;
+    String? imageUrl;
+    if (imageBytes != null && imageBytes.isNotEmpty) {
+      imageUrl = 'data:image/jpeg;base64,${base64Encode(imageBytes)}';
+    }
+
     try {
       final api = ref.read(apiClientProvider);
       await api.createProduct(
@@ -1835,6 +1841,7 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
         retailPrice: _currentPrice,
         b2bPrice: _currentPrice * 0.75,
         stock: 10,
+        imageUrl: imageUrl,
       );
 
       ref.invalidate(artisanProductsProvider);

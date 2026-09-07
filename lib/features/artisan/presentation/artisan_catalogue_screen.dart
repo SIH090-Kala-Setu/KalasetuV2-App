@@ -23,6 +23,7 @@ class ArtisanCatalogueScreen extends ConsumerStatefulWidget {
 
 class _ArtisanCatalogueScreenState extends ConsumerState<ArtisanCatalogueScreen> {
   String _selectedFilter = 'All';
+  String _sortBy = 'newest';
 
   // Demo fallback products matching the exact screenshot
   static final _demoCatalogue = [
@@ -58,6 +59,59 @@ class _ArtisanCatalogueScreenState extends ConsumerState<ArtisanCatalogueScreen>
     },
   ];
 
+  List<ProductModel> _filterAndSortProducts(List<ProductModel> products) {
+    final filtered = products.where((p) {
+      final st = p.status.toLowerCase();
+      if (_selectedFilter == 'Active') return st == 'active';
+      if (_selectedFilter == 'Drafts') return st == 'draft' || st == 'pending review';
+      if (_selectedFilter == 'Sold Out') return st == 'sold out';
+      if (_selectedFilter == 'Archived') return st == 'archived';
+      // 'All': show all products except archived ones
+      return st != 'archived';
+    }).toList();
+
+    filtered.sort((a, b) {
+      switch (_sortBy) {
+        case 'newest':
+          final aDate = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+          final bDate = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+          final cmp = bDate.compareTo(aDate);
+          return cmp != 0 ? cmp : b.id.compareTo(a.id);
+        case 'oldest':
+          final aDate = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+          final bDate = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+          final cmp = aDate.compareTo(bDate);
+          return cmp != 0 ? cmp : a.id.compareTo(b.id);
+        case 'price_asc':
+          final cmp = a.retailPrice.compareTo(b.retailPrice);
+          return cmp != 0 ? cmp : a.titleEn.compareTo(b.titleEn);
+        case 'price_desc':
+          final cmp = b.retailPrice.compareTo(a.retailPrice);
+          return cmp != 0 ? cmp : a.titleEn.compareTo(b.titleEn);
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }
+
+  List<ProductModel> _getDemoProductModels() {
+    return _demoCatalogue.map((item) => ProductModel(
+      id: item['id'] as String,
+      titleEn: item['titleEn'] as String,
+      titleHi: item['titleHi'] as String,
+      retailPrice: (item['price'] as int).toDouble(),
+      b2bPrice: (item['price'] as int) * 0.8,
+      category: 'Handicrafts',
+      status: item['status'] as String,
+      stock: item['stock'] as int,
+      giTag: item['hasGi'] as bool,
+      imageUrl: item['imageUrl'] as String,
+      createdAt: DateTime(2026, 1, 1),
+    )).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     final productsAsync = ref.watch(artisanProductsProvider);
@@ -71,19 +125,25 @@ class _ArtisanCatalogueScreenState extends ConsumerState<ArtisanCatalogueScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 12),
-              // Header: My Catalogue
-              const Text(
-                'My Catalogue',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.primary,
-                  letterSpacing: -0.5,
-                ),
+              // Header: My Catalogue + Sort Button
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'My Catalogue',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  _buildSortDropdown(),
+                ],
               ),
               const SizedBox(height: 14),
 
-              // Filter Pills Row: All, Active, Drafts, Sold Out
+              // Filter Pills Row: All, Active, Drafts, Sold Out, Archived
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),
@@ -96,6 +156,8 @@ class _ArtisanCatalogueScreenState extends ConsumerState<ArtisanCatalogueScreen>
                     _buildFilterPill('Drafts'),
                     const SizedBox(width: 8),
                     _buildFilterPill('Sold Out'),
+                    const SizedBox(width: 8),
+                    _buildFilterPill('Archived'),
                   ],
                 ),
               ),
@@ -107,32 +169,59 @@ class _ArtisanCatalogueScreenState extends ConsumerState<ArtisanCatalogueScreen>
                   onRefresh: () async => ref.invalidate(artisanProductsProvider),
                   child: productsAsync.when(
                     data: (products) {
-                      final filtered = products.where((p) {
-                        if (_selectedFilter == 'Active') return p.status == 'Active';
-                        if (_selectedFilter == 'Drafts') return p.status == 'Draft' || p.status == 'Pending Review';
-                        if (_selectedFilter == 'Sold Out') return p.status == 'Sold Out';
-                        return true;
-                      }).toList();
+                      final sourceList = products.isNotEmpty ? products : _getDemoProductModels();
+                      final filtered = _filterAndSortProducts(sourceList);
 
-                      if (filtered.isEmpty && products.isEmpty) {
-                        return ListView.separated(
-                          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                          padding: const EdgeInsets.only(bottom: 24),
-                          itemCount: _demoCatalogue.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 18),
-                          itemBuilder: (context, index) {
-                            final item = _demoCatalogue[index];
-                            return _CatalogueCard(
-                              id: item['id'] as String?,
-                              titleEn: item['titleEn'] as String,
-                              titleHi: item['titleHi'] as String,
-                              price: item['price'] as int,
-                              status: item['status'] as String,
-                              initialStock: item['stock'] as int,
-                              hasGi: item['hasGi'] as bool,
-                              imageUrl: item['imageUrl'] as String,
-                            );
-                          },
+                      if (filtered.isEmpty) {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(18),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(alpha: 0.08),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    _selectedFilter == 'Archived'
+                                        ? Icons.archive_outlined
+                                        : Icons.inventory_2_outlined,
+                                    size: 48,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  _selectedFilter == 'Archived'
+                                      ? 'No Archived Products'
+                                      : 'No ${_selectedFilter.toLowerCase()} products found',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF334155),
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  _selectedFilter == 'Archived'
+                                      ? 'Products marked as Archived will appear here.'
+                                      : 'Try selecting a different filter or adding a new product.',
+                                  style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                                  textAlign: TextAlign.center,
+                                ),
+                                if (_selectedFilter != 'All') ...[
+                                  const SizedBox(height: 16),
+                                  TextButton(
+                                    onPressed: () => setState(() => _selectedFilter = 'All'),
+                                    child: const Text('Show All Products'),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
                         );
                       }
 
@@ -161,25 +250,30 @@ class _ArtisanCatalogueScreenState extends ConsumerState<ArtisanCatalogueScreen>
                     loading: () => const Center(
                       child: CircularProgressIndicator(color: AppColors.primary),
                     ),
-                    error: (err, stack) => ListView.separated(
-                      physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                      padding: const EdgeInsets.only(bottom: 24),
-                      itemCount: _demoCatalogue.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 18),
-                      itemBuilder: (context, index) {
-                        final item = _demoCatalogue[index];
-                        return _CatalogueCard(
-                          id: item['id'] as String?,
-                          titleEn: item['titleEn'] as String,
-                          titleHi: item['titleHi'] as String,
-                          price: item['price'] as int,
-                          status: item['status'] as String,
-                          initialStock: item['stock'] as int,
-                          hasGi: item['hasGi'] as bool,
-                          imageUrl: item['imageUrl'] as String,
-                        );
-                      },
-                    ),
+                    error: (err, stack) {
+                      final filtered = _filterAndSortProducts(_getDemoProductModels());
+                      return ListView.separated(
+                        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                        padding: const EdgeInsets.only(bottom: 24),
+                        itemCount: filtered.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 18),
+                        itemBuilder: (context, index) {
+                          final p = filtered[index];
+                          return _CatalogueCard(
+                            id: p.id,
+                            titleEn: p.titleEn,
+                            titleHi: p.titleHi.isNotEmpty ? p.titleHi : p.titleEn,
+                            price: p.retailPrice.toInt(),
+                            status: p.status,
+                            initialStock: p.stock,
+                            hasGi: p.giTag,
+                            imageUrl: (p.imageUrl != null && p.imageUrl!.isNotEmpty)
+                                ? p.imageUrl!
+                                : 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=600',
+                          );
+                        },
+                      );
+                    },
                   ),
                 ),
               ),
@@ -193,6 +287,102 @@ class _ArtisanCatalogueScreenState extends ConsumerState<ArtisanCatalogueScreen>
         foregroundColor: Colors.white,
         child: const Icon(Icons.add_rounded, size: 28),
       ),
+    );
+  }
+
+  Widget _buildSortDropdown() {
+    String label;
+    switch (_sortBy) {
+      case 'newest':
+        label = 'Newest';
+        break;
+      case 'oldest':
+        label = 'Oldest';
+        break;
+      case 'price_asc':
+        label = 'Price: Low';
+        break;
+      case 'price_desc':
+        label = 'Price: High';
+        break;
+      default:
+        label = 'Sort';
+    }
+
+    return PopupMenuButton<String>(
+      initialValue: _sortBy,
+      tooltip: 'Sort products',
+      onSelected: (val) => setState(() => _sortBy = val),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      elevation: 3,
+      color: Colors.white,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.sort_rounded, size: 16, color: AppColors.primary),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(width: 2),
+            const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: AppColors.primary),
+          ],
+        ),
+      ),
+      itemBuilder: (context) => [
+        const PopupMenuItem(
+          value: 'newest',
+          child: Row(
+            children: [
+              Icon(Icons.schedule_rounded, size: 16, color: Color(0xFF64748B)),
+              SizedBox(width: 10),
+              Text('Newest First', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'oldest',
+          child: Row(
+            children: [
+              Icon(Icons.history_rounded, size: 16, color: Color(0xFF64748B)),
+              SizedBox(width: 10),
+              Text('Oldest First', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'price_asc',
+          child: Row(
+            children: [
+              Icon(Icons.arrow_upward_rounded, size: 16, color: Color(0xFF64748B)),
+              SizedBox(width: 10),
+              Text('Price: Low to High', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'price_desc',
+          child: Row(
+            children: [
+              Icon(Icons.arrow_downward_rounded, size: 16, color: Color(0xFF64748B)),
+              SizedBox(width: 10),
+              Text('Price: High to Low', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -286,6 +476,8 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
         return const Color(0xFFD97706);
       case 'pending review':
         return const Color(0xFF2563EB);
+      case 'archived':
+        return const Color(0xFF475569);
       default:
         return const Color(0xFF64748B);
     }
@@ -301,6 +493,8 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
         return const Color(0xFFFEF3C7);
       case 'pending review':
         return const Color(0xFFDBEAFE);
+      case 'archived':
+        return const Color(0xFFF1F5F9);
       default:
         return const Color(0xFFF1F5F9);
     }

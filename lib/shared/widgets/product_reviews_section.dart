@@ -202,7 +202,8 @@ class _ProductReviewsSectionState extends ConsumerState<ProductReviewsSection> {
       builder: (_) => _WriteReviewSheet(
         productId: widget.productId,
         onSubmitted: (review) {
-          setState(() => _reviews = [...?_reviews, review]);
+          setState(() => _reviews = [review, ...?_reviews]);
+          _loadReviews();
         },
       ),
     );
@@ -440,6 +441,12 @@ class _WriteReviewSheetState extends ConsumerState<_WriteReviewSheet> {
       if (mounted) {
         if (review != null) {
           widget.onSubmitted(review);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Review submitted successfully!'),
+              backgroundColor: Color(0xFF047857),
+            ),
+          );
         } else {
           throw Exception('Review response empty');
         }

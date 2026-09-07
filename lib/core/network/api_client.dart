@@ -223,6 +223,8 @@ class ApiClient {
     String? region,
     double? minPrice,
     double? maxPrice,
+    String? status,
+    String? sortBy,
     int limit = 40,
     int offset = 0,
   }) async {
@@ -234,6 +236,10 @@ class ApiClient {
     if (region != null && region.isNotEmpty) params['region'] = region;
     if (minPrice != null) params['min_price'] = minPrice;
     if (maxPrice != null) params['max_price'] = maxPrice;
+    if (status != null && status.isNotEmpty && status != 'All') {
+      params['status'] = status;
+    }
+    if (sortBy != null && sortBy.isNotEmpty) params['sort_by'] = sortBy;
 
     final response = await _dio.get(ApiEndpoints.products, queryParameters: params);
     final list = response.data as List<dynamic>;
