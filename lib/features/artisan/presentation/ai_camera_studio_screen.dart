@@ -1161,7 +1161,6 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? AppColors.darkSurface : Colors.white;
     final cardBorder = isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0);
-    final fieldBg = isDark ? AppColors.darkSurfaceVariant : Colors.white;
     final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.primary;
     final textSecondary = isDark ? AppColors.darkTextSecondary : const Color(0xFF8A94A6);
     final accentOrPrimary = isDark ? AppColors.accent : AppColors.primary;
@@ -1181,102 +1180,25 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            'XGBoost & SHAP Explainable AI ensures fair compensation for artisan labor',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: textSecondary),
-          ),
-          const SizedBox(height: 20),
-
-          // Cost & Labor Inputs Row
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Material Cost (₹)',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: textPrimary),
-                    ),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: _materialCostCtrl,
-                      keyboardType: TextInputType.number,
-                      onSubmitted: (_) => _calculatePriceWithAi(),
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: textPrimary),
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: fieldBg,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: cardBorder),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: cardBorder),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: accentOrPrimary, width: 1.5),
-                        ),
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  'XGBoost & SHAP Explainable AI ensures fair compensation for artisan labor',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: textSecondary),
                 ),
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Labor Hours',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: textPrimary),
-                    ),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: _laborHoursCtrl,
-                      keyboardType: TextInputType.number,
-                      onSubmitted: (_) => _calculatePriceWithAi(),
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: textPrimary),
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: fieldBg,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: cardBorder),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: cardBorder),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: accentOrPrimary, width: 1.5),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              TextButton.icon(
+                onPressed: _isCalculatingPrice ? null : _calculatePriceWithAi,
+                icon: _isCalculatingPrice
+                    ? SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: accentOrPrimary))
+                    : Icon(Icons.refresh_rounded, size: 16, color: accentOrPrimary),
+                label: Text('Recalculate', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: accentOrPrimary)),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-
-          // Recalculate button
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: _isCalculatingPrice ? null : _calculatePriceWithAi,
-              icon: _isCalculatingPrice
-                  ? SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: accentOrPrimary))
-                  : Icon(Icons.refresh_rounded, size: 16, color: accentOrPrimary),
-              label: Text('Recalculate AI Fair Price', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: accentOrPrimary)),
-            ),
-          ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 14),
 
           // Multiplier banner
           Container(
@@ -1461,7 +1383,7 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
               child: _isPublishing
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 22,
                       height: 22,
                       child: CircularProgressIndicator(color: AppColors.darkBackground, strokeWidth: 2),

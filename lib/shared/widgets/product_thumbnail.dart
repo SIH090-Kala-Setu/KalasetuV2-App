@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/theme/app_colors.dart';
+import 'shimmer_loader.dart';
 
 /// Universal product image renderer:
 /// Handles base64 Data URIs (data:image/png;base64,...), raw base64 strings,
@@ -129,15 +130,10 @@ class ProductThumbnail extends StatelessWidget {
     );
   }
 
-  Widget _buildShimmer(bool isDark) => Container(
-        color: isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant,
-        child: const Center(
-          child: SizedBox(
-            width: 24,
-            height: 24,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        ),
+  Widget _buildShimmer(bool isDark) => ShimmerLoader(
+        width: width ?? double.infinity,
+        height: height ?? double.infinity,
+        borderRadius: 0,
       );
 
   Widget _buildFallback(bool isDark) =>
@@ -145,10 +141,26 @@ class ProductThumbnail extends StatelessWidget {
       Container(
         color: isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant,
         child: Center(
-          child: Icon(
-            Icons.image_outlined,
-            size: (height != null && height! < 100) ? 24 : 36,
-            color: isDark ? AppColors.darkTextDisabled : AppColors.lightTextDisabled,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.image_outlined,
+                size: (height != null && height! < 100) ? 24 : 36,
+                color: isDark ? AppColors.darkTextDisabled : AppColors.lightTextDisabled,
+              ),
+              if (height == null || height! >= 100) ...[
+                const SizedBox(height: 6),
+                Text(
+                  'No Image Preview',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark ? AppColors.darkTextDisabled : AppColors.lightTextDisabled,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       );

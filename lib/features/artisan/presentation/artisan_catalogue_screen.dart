@@ -8,6 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/network/api_client.dart';
 import '../../../shared/models/models.dart';
 import '../../../shared/widgets/product_thumbnail.dart';
+import '../../../shared/widgets/shimmer_loader.dart';
 
 final artisanProductsProvider = FutureProvider.autoDispose<List<ProductModel>>((ref) async {
   final api = ref.read(apiClientProvider);
@@ -35,7 +36,7 @@ class _ArtisanCatalogueScreenState extends ConsumerState<ArtisanCatalogueScreen>
       'status': 'Active',
       'stock': 24,
       'hasGi': true,
-      'imageUrl': 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=600',
+      'imageUrl': '',
     },
     {
       'id': 'p2',
@@ -249,15 +250,21 @@ class _ArtisanCatalogueScreenState extends ConsumerState<ArtisanCatalogueScreen>
                             status: p.status,
                             initialStock: p.stock,
                             hasGi: p.giTag,
+                            category: p.category,
+                            complexity: p.complexity,
                             imageUrl: (p.imageUrl != null && p.imageUrl!.isNotEmpty)
                                 ? p.imageUrl!
-                                : 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=600',
+                                : '',
                           );
                         },
                       );
                     },
-                    loading: () => Center(
-                      child: CircularProgressIndicator(color: AppColors.adaptivePrimary(context)),
+                    loading: () => ListView.separated(
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: const EdgeInsets.only(bottom: 24),
+                      itemCount: 4,
+                      separatorBuilder: (_, __) => const SizedBox(height: 18),
+                      itemBuilder: (_, __) => const _CatalogueCardSkeleton(),
                     ),
                     error: (err, stack) {
                       final filtered = _filterAndSortProducts(_getDemoProductModels());
@@ -276,9 +283,11 @@ class _ArtisanCatalogueScreenState extends ConsumerState<ArtisanCatalogueScreen>
                             status: p.status,
                             initialStock: p.stock,
                             hasGi: p.giTag,
+                            category: p.category,
+                            complexity: p.complexity,
                             imageUrl: (p.imageUrl != null && p.imageUrl!.isNotEmpty)
                                 ? p.imageUrl!
-                                : 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=600',
+                                : '',
                           );
                         },
                       );
@@ -447,6 +456,8 @@ class _CatalogueCard extends ConsumerStatefulWidget {
   final int initialStock;
   final bool hasGi;
   final String imageUrl;
+  final String? category;
+  final String? complexity;
 
   const _CatalogueCard({
     this.id,
@@ -457,6 +468,8 @@ class _CatalogueCard extends ConsumerStatefulWidget {
     required this.initialStock,
     required this.hasGi,
     required this.imageUrl,
+    this.category,
+    this.complexity,
   });
 
   @override
@@ -714,6 +727,63 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
     );
   }
 
+  Future<void> _confirmDeleteProduct() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626)),
+            SizedBox(width: 8),
+            Text('Delete Product'),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to delete "${widget.titleEn}"? This action cannot be undone and will remove the product permanently.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      if (widget.id != null && !widget.id!.startsWith('p')) {
+        final api = ref.read(apiClientProvider);
+        await api.deleteProduct(widget.id!);
+      }
+      ref.invalidate(artisanProductsProvider);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Product deleted successfully.'),
+          backgroundColor: Color(0xFFDC2626),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to delete product: $e'),
+          backgroundColor: const Color(0xFFDC2626),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -737,14 +807,22 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Image Header
-          ClipRRect(
+          InkWell(
+            onTap: () {
+              if (widget.id != null && widget.id!.isNotEmpty) {
+                context.push(RouteNames.productDetail(widget.id!));
+              }
+            },
             borderRadius: const BorderRadius.vertical(top: Radius.circular(19)),
-            child: ProductThumbnail(
-              imageUrl: widget.imageUrl,
-              width: double.infinity,
-              height: 170,
-              fit: BoxFit.cover,
-              borderRadius: BorderRadius.zero,
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(19)),
+              child: ProductThumbnail(
+                imageUrl: widget.imageUrl,
+                width: double.infinity,
+                height: 170,
+                fit: BoxFit.cover,
+                borderRadius: BorderRadius.zero,
+              ),
             ),
           ),
 
@@ -755,42 +833,50 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Title and GI Tag Row
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _titleEn,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: titleColor,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (widget.hasGi) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? const Color(0xFF15803D).withValues(alpha: 0.2)
-                              : const Color(0xFFD1FAE5),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                InkWell(
+                  onTap: () {
+                    if (widget.id != null && widget.id!.isNotEmpty) {
+                      context.push(RouteNames.productDetail(widget.id!));
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
                         child: Text(
-                          'GI',
+                          _titleEn,
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 15,
                             fontWeight: FontWeight.w800,
-                            color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF047857),
+                            color: titleColor,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (widget.hasGi) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? const Color(0xFF15803D).withValues(alpha: 0.2)
+                                : const Color(0xFFD1FAE5),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'GI',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF047857),
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -800,6 +886,29 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
                     fontWeight: FontWeight.w500,
                     color: subtitleColor,
                   ),
+                ),
+                const SizedBox(height: 8),
+
+                // Category & Complexity chips
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    if (widget.category != null && widget.category!.isNotEmpty)
+                      _InfoChip(
+                        label: widget.category!,
+                        icon: Icons.category_outlined,
+                        isDark: isDark,
+                        color: isDark ? AppColors.accent : AppColors.primary,
+                      ),
+                    if (widget.complexity != null && widget.complexity!.isNotEmpty)
+                      _InfoChip(
+                        label: widget.complexity!,
+                        icon: Icons.tune_rounded,
+                        isDark: isDark,
+                        color: isDark ? const Color(0xFFA78BFA) : const Color(0xFF7C3AED),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 10),
 
@@ -893,7 +1002,7 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
                 ),
                 const SizedBox(height: 14),
 
-                // Actions: Edit Product and QR button
+                // Actions: Edit Product, QR button, Delete button
                 Row(
                   children: [
                     Expanded(
@@ -911,12 +1020,12 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
                     InkWell(
                       onTap: () => _showProductQrModal(context),
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
-                        width: 48,
+                        width: 44,
                         height: 44,
                         decoration: BoxDecoration(
                           color: isDark ? AppColors.darkSurfaceVariant : Colors.transparent,
@@ -924,7 +1033,24 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
                           border: Border.all(color: isDark ? AppColors.darkBorder : const Color(0xFFCBD5E1)),
                         ),
                         child: Center(
-                          child: Icon(Icons.qr_code_2_rounded, color: accentOrPrimary, size: 24),
+                          child: Icon(Icons.qr_code_2_rounded, color: accentOrPrimary, size: 22),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: _confirmDeleteProduct,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF3F1D1D) : const Color(0xFFFEE2E2),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFCA5A5)),
+                        ),
+                        child: const Center(
+                          child: Icon(Icons.delete_outline_rounded, color: Color(0xFFDC2626), size: 22),
                         ),
                       ),
                     ),
@@ -1058,6 +1184,66 @@ class _EditProductSheetState extends ConsumerState<_EditProductSheet> {
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleDeleteProduct() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626)),
+            SizedBox(width: 8),
+            Text('Delete Product'),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to delete "${widget.initialTitleEn}"? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _isLoading = true);
+    try {
+      if (widget.id != null && !widget.id!.startsWith('p')) {
+        final api = ref.read(apiClientProvider);
+        await api.deleteProduct(widget.id!);
+      }
+      ref.invalidate(artisanProductsProvider);
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Product deleted successfully.'),
+          backgroundColor: Color(0xFFDC2626),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to delete product: $e'),
+          backgroundColor: const Color(0xFFDC2626),
+        ),
+      );
     }
   }
 
@@ -1216,8 +1402,131 @@ class _EditProductSheetState extends ConsumerState<_EditProductSheet> {
               ),
             ),
             const SizedBox(height: 12),
+            if (widget.id != null)
+              SizedBox(
+                width: double.infinity,
+                height: 46,
+                child: OutlinedButton.icon(
+                  onPressed: _isLoading ? null : _handleDeleteProduct,
+                  icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFDC2626)),
+                  label: const Text(
+                    'Delete Product',
+                    style: TextStyle(color: Color(0xFFDC2626), fontWeight: FontWeight.w600),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFFFCA5A5)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+              ),
+            const SizedBox(height: 12),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ─── Skeleton placeholder for loading state ───────────────────────────────
+class _CatalogueCardSkeleton extends StatelessWidget {
+  const _CatalogueCardSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? AppColors.darkSurface : Colors.white;
+    final border = isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: border),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ShimmerLoader(width: double.infinity, height: 170, borderRadius: 19),
+          Padding(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ShimmerLoader(width: double.infinity, height: 15),
+                SizedBox(height: 8),
+                ShimmerLoader(width: 180, height: 12),
+                SizedBox(height: 10),
+                Row(
+                  children: [
+                    ShimmerLoader(width: 80, height: 22, borderRadius: 12),
+                    SizedBox(width: 8),
+                    ShimmerLoader(width: 70, height: 22, borderRadius: 12),
+                  ],
+                ),
+                SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    ShimmerLoader(width: 80, height: 20),
+                    ShimmerLoader(width: 60, height: 22, borderRadius: 10),
+                  ],
+                ),
+                SizedBox(height: 14),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    ShimmerLoader(width: 60, height: 14),
+                    ShimmerLoader(width: 100, height: 32, borderRadius: 8),
+                  ],
+                ),
+                SizedBox(height: 14),
+                ShimmerLoader(width: double.infinity, height: 42, borderRadius: 12),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Small info chip for category / complexity ────────────────────────────
+class _InfoChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool isDark;
+  final Color color;
+
+  const _InfoChip({
+    required this.label,
+    required this.icon,
+    required this.isDark,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: isDark ? 0.18 : 0.10),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
       ),
     );
   }

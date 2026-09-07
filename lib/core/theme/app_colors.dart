@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 
+enum DarkModeStyle {
+  onyx,      // #1C1C1C (Deep Onyx)
+  charcoal,  // #2C2C2C (Warm Charcoal)
+}
+
 /// KalaSetuV2 — Complete Color Design System
-/// Light Mode: Canvas #F8F7F2, Cards #FFFFFF, Primary #2E4057, Accent #F4A226
-/// Dark Mode: Canvas #0F172A, Cards #1E293B, Borders #334155
+/// Light Mode: Canvas #FAF8F5, Cards #FFFFFF, Primary #1B2A4A, Accent #F5A623
+/// Dark Mode 1 (Onyx): Canvas #1C1C1C, Cards #262626, Borders #383838
+/// Dark Mode 2 (Charcoal): Canvas #2C2C2C, Cards #383838, Borders #4C4C4C
 class AppColors {
   AppColors._();
 
@@ -25,15 +31,37 @@ class AppColors {
   static const Color lightTextDisabled = Color(0xFF94A3B8);
   static const Color lightCardShadow = Color(0x0A000000);
 
-  // ── Dark Theme ────────────────────────────────────────────────
-  static const Color darkBackground = Color(0xFF0F172A);    // Slate navy
-  static const Color darkSurface = Color(0xFF1E293B);       // Deep slate card
-  static const Color darkSurfaceVariant = Color(0xFF243148);
-  static const Color darkBorder = Color(0xFF334155);        // Slate border
-  static const Color darkDivider = Color(0xFF2D3D54);
+  // ── Dark Theme Style 1: Deep Onyx (#1C1C1C) ──────────────────
+  static const Color onyxBackground = Color(0xFF1C1C1C);
+  static const Color onyxSurface = Color(0xFF262626);
+  static const Color onyxSurfaceVariant = Color(0xFF303030);
+  static const Color onyxBorder = Color(0xFF383838);
+  static const Color onyxDivider = Color(0xFF303030);
+
+  // ── Dark Theme Style 2: Warm Charcoal (#2C2C2C) ───────────────
+  static const Color charcoalBackground = Color(0xFF2C2C2C);
+  static const Color charcoalSurface = Color(0xFF383838);
+  static const Color charcoalSurfaceVariant = Color(0xFF444444);
+  static const Color charcoalBorder = Color(0xFF4C4C4C);
+  static const Color charcoalDivider = Color(0xFF404040);
+
+  // ── Dynamic Dark Theme Accessors ──────────────────────────────
+  static DarkModeStyle currentDarkStyle = DarkModeStyle.onyx;
+
+  static Color get darkBackground =>
+      currentDarkStyle == DarkModeStyle.charcoal ? charcoalBackground : onyxBackground;
+  static Color get darkSurface =>
+      currentDarkStyle == DarkModeStyle.charcoal ? charcoalSurface : onyxSurface;
+  static Color get darkSurfaceVariant =>
+      currentDarkStyle == DarkModeStyle.charcoal ? charcoalSurfaceVariant : onyxSurfaceVariant;
+  static Color get darkBorder =>
+      currentDarkStyle == DarkModeStyle.charcoal ? charcoalBorder : onyxBorder;
+  static Color get darkDivider =>
+      currentDarkStyle == DarkModeStyle.charcoal ? charcoalDivider : onyxDivider;
+
   static const Color darkTextPrimary = Color(0xFFF8FAFC);
   static const Color darkTextSecondary = Color(0xFF94A3B8);
-  static const Color darkTextDisabled = Color(0xFF475569);
+  static const Color darkTextDisabled = Color(0xFF64748B);
   static const Color darkCardShadow = Color(0x33000000);
 
   // ── Status Colors ─────────────────────────────────────────────

@@ -45,6 +45,7 @@ class KalaSetuApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     final themeMode = ref.watch(themeModeProvider);
+    final darkStyle = ref.watch(darkModeStyleProvider);
     final locale = ref.watch(localeProvider);
 
     return MaterialApp.router(
@@ -53,7 +54,7 @@ class KalaSetuApp extends ConsumerWidget {
 
       // ── Theming ────────────────────────────────────────────────
       theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
+      darkTheme: AppTheme.getDarkTheme(darkStyle),
       themeMode: themeMode,
 
       // ── Router ─────────────────────────────────────────────────

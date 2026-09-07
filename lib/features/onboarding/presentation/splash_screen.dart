@@ -50,7 +50,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
   }
 
   Future<void> _checkExistingSession() async {
-    await Future.delayed(const Duration(milliseconds: 600));
+    await Future.delayed(const Duration(milliseconds: 4000));
     if (!mounted) return;
     final authState = ref.read(authProvider);
     authState.whenData((auth) {
@@ -164,8 +164,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
                                 size: 18,
                               ),
                             ),
-                            tooltip: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
-                            onPressed: () => ref.read(themeModeProvider.notifier).toggleLightDark(),
+                            tooltip: 'Cycle Theme (Light / Onyx / Charcoal)',
+                            onPressed: () => ref.read(themeModeProvider.notifier).cycleTheme(ref),
                           ),
                         ],
                       ),
@@ -175,32 +175,35 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
                       // Logo Icon with subtle glowing ring
                       Center(
                         child: Container(
-                          width: 96,
-                          height: 96,
+                          width: 120,
+                          height: 120,
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(28),
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(32),
                             border: Border.all(
                               color: const Color(0xFFF5A623).withValues(alpha: 0.6),
-                              width: 2,
+                              width: 2.5,
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFFF5A623).withValues(alpha: 0.35),
-                                blurRadius: 28,
-                                offset: const Offset(0, 10),
+                                color: const Color(0xFFF5A623).withValues(alpha: 0.30),
+                                blurRadius: 36,
+                                offset: const Offset(0, 12),
+                              ),
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
+                                blurRadius: 16,
+                                offset: const Offset(0, 4),
                               ),
                             ],
                           ),
-                          child: const Center(
-                            child: Icon(
-                              Icons.auto_awesome,
-                              color: AppColors.accent,
-                              size: 48,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(30),
+                            child: Image.asset(
+                              'assets/images/logo.png',
+                              width: 120,
+                              height: 120,
+                              fit: BoxFit.cover,
                             ),
                           ),
                         ),

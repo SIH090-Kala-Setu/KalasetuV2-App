@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/network/api_client.dart';
 import '../../../shared/models/models.dart';
 import '../../../shared/widgets/product_thumbnail.dart';
+import '../../../shared/widgets/shimmer_loader.dart';
 
 final marketplaceProductsProvider = FutureProvider.autoDispose.family<List<ProductModel>, ({String? category, String? search})>((ref, arg) async {
   final api = ref.read(apiClientProvider);
@@ -41,7 +42,7 @@ class _BuyerMarketplaceScreenState extends ConsumerState<BuyerMarketplaceScreen>
       'moq': 10,
       'hasGi': true,
       'isSoldOut': false,
-      'imageUrl': 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=600',
+      'imageUrl': '',
     },
     {
       'id': 'p2',
@@ -328,13 +329,22 @@ class _BuyerMarketplaceScreenState extends ConsumerState<BuyerMarketplaceScreen>
                             isSoldOut: p.status == 'Sold Out',
                             imageUrl: (p.imageUrl != null && p.imageUrl!.isNotEmpty)
                                 ? p.imageUrl!
-                                : 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=600',
+                                : '',
                           );
                         },
                       );
                     },
-                    loading: () => Center(
-                      child: CircularProgressIndicator(color: isDark ? AppColors.accent : AppColors.primary),
+                    loading: () => GridView.builder(
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: const EdgeInsets.only(bottom: 20),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                        childAspectRatio: 0.65,
+                      ),
+                      itemCount: 6,
+                      itemBuilder: (_, __) => const ShimmerProductCard(),
                     ),
                     error: (err, stack) {
                       return Column(

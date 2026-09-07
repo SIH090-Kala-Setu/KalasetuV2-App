@@ -141,6 +141,42 @@ class BuyerProfileScreen extends ConsumerWidget {
                       ),
                       contentPadding: EdgeInsets.zero,
                     ),
+                    if (isDark) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(
+                          children: [
+                            Text(
+                              'Dark Tone: ',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const Spacer(),
+                            ChoiceChip(
+                              label: const Text('Onyx (#1C1C1C)', style: TextStyle(fontSize: 12)),
+                              selected: ref.watch(darkModeStyleProvider) == DarkModeStyle.onyx,
+                              onSelected: (selected) {
+                                if (selected) ref.read(darkModeStyleProvider.notifier).setStyle(DarkModeStyle.onyx);
+                              },
+                              selectedColor: AppColors.accent,
+                            ),
+                            const SizedBox(width: 8),
+                            ChoiceChip(
+                              label: const Text('Charcoal (#2C2C2C)', style: TextStyle(fontSize: 12)),
+                              selected: ref.watch(darkModeStyleProvider) == DarkModeStyle.charcoal,
+                              onSelected: (selected) {
+                                if (selected) ref.read(darkModeStyleProvider.notifier).setStyle(DarkModeStyle.charcoal);
+                              },
+                              selectedColor: AppColors.accent,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Divider(height: 1),
+                    ],
                     ListTile(
                       leading: Icon(Icons.dns_outlined, color: isDark ? const Color(0xFFF472B6) : AppColors.buyerColor),
                       title: const Text('Server Configuration'),
@@ -151,12 +187,6 @@ class BuyerProfileScreen extends ConsumerWidget {
                         context: context,
                         builder: (_) => const ServerConfigDialog(),
                       ),
-                    ),
-                    ListTile(
-                      leading: Icon(Icons.notifications_outlined, color: isDark ? const Color(0xFFF472B6) : AppColors.buyerColor),
-                      title: const Text('Notifications'),
-                      trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
-                      contentPadding: EdgeInsets.zero,
                     ),
                     const SizedBox(height: 24),
                     AppButton.danger(

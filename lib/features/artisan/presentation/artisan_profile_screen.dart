@@ -326,6 +326,42 @@ class ArtisanProfileScreen extends ConsumerWidget {
                         onChanged: (_) => ref.read(themeModeProvider.notifier).toggleLightDark(),
                       ),
                     ),
+                    if (isDark) ...[
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Row(
+                          children: [
+                            Text(
+                              'Dark Tone: ',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const Spacer(),
+                            ChoiceChip(
+                              label: const Text('Onyx (#1C1C1C)', style: TextStyle(fontSize: 12)),
+                              selected: ref.watch(darkModeStyleProvider) == DarkModeStyle.onyx,
+                              onSelected: (selected) {
+                                if (selected) ref.read(darkModeStyleProvider.notifier).setStyle(DarkModeStyle.onyx);
+                              },
+                              selectedColor: AppColors.accent,
+                            ),
+                            const SizedBox(width: 8),
+                            ChoiceChip(
+                              label: const Text('Charcoal (#2C2C2C)', style: TextStyle(fontSize: 12)),
+                              selected: ref.watch(darkModeStyleProvider) == DarkModeStyle.charcoal,
+                              onSelected: (selected) {
+                                if (selected) ref.read(darkModeStyleProvider.notifier).setStyle(DarkModeStyle.charcoal);
+                              },
+                              selectedColor: AppColors.accent,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Divider(height: 1),
+                    ],
                     _SettingsTile(
                       icon: Icons.language_rounded,
                       title: _profileTr(currentLocale.languageCode, 'language'),

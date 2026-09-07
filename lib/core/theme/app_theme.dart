@@ -7,29 +7,42 @@ class AppTheme {
   AppTheme._();
 
   static ThemeData get lightTheme => _buildTheme(isDark: false);
-  static ThemeData get darkTheme => _buildTheme(isDark: true);
+  static ThemeData get darkTheme => getDarkTheme(AppColors.currentDarkStyle);
 
-  static ThemeData _buildTheme({required bool isDark}) {
-    final bg = isDark ? AppColors.darkBackground : AppColors.lightBackground;
-    final surface = isDark ? AppColors.darkSurface : AppColors.lightSurface;
-    final border = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+  static ThemeData getDarkTheme([DarkModeStyle style = DarkModeStyle.onyx]) {
+    return _buildTheme(isDark: true, darkStyle: style);
+  }
+
+  static ThemeData _buildTheme({required bool isDark, DarkModeStyle darkStyle = DarkModeStyle.onyx}) {
+    final bg = isDark
+        ? (darkStyle == DarkModeStyle.charcoal ? AppColors.charcoalBackground : AppColors.onyxBackground)
+        : AppColors.lightBackground;
+    final surface = isDark
+        ? (darkStyle == DarkModeStyle.charcoal ? AppColors.charcoalSurface : AppColors.onyxSurface)
+        : AppColors.lightSurface;
+    final border = isDark
+        ? (darkStyle == DarkModeStyle.charcoal ? AppColors.charcoalBorder : AppColors.onyxBorder)
+        : AppColors.lightBorder;
+    final surfaceVariant = isDark
+        ? (darkStyle == DarkModeStyle.charcoal ? AppColors.charcoalSurfaceVariant : AppColors.onyxSurfaceVariant)
+        : AppColors.lightSurfaceVariant;
     final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
     final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
     final colorScheme = isDark
-        ? const ColorScheme.dark(
+        ? ColorScheme.dark(
             primary: AppColors.accent,
             primaryContainer: AppColors.primaryLight,
             secondary: AppColors.accentLight,
             secondaryContainer: AppColors.accentDark,
-            surface: AppColors.darkSurface,
+            surface: surface,
             error: AppColors.error,
             onPrimary: Colors.white,
             onSecondary: Colors.white,
             onSurface: AppColors.darkTextPrimary,
             onError: Colors.white,
-            outline: AppColors.darkBorder,
-            surfaceContainerHighest: AppColors.darkSurfaceVariant,
+            outline: border,
+            surfaceContainerHighest: surfaceVariant,
           )
         : const ColorScheme.light(
             primary: AppColors.primary,
@@ -93,7 +106,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: isDark
-              ? const BorderSide(color: AppColors.darkBorder, width: 1)
+              ? BorderSide(color: border, width: 1)
               : BorderSide.none,
         ),
         margin: EdgeInsets.zero,
@@ -191,7 +204,7 @@ class AppTheme {
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        showDragHandle: true,
+        showDragHandle: false,
         dragHandleColor: isDark ? AppColors.darkBorder : AppColors.lightBorder,
         dragHandleSize: const Size(40, 4),
         elevation: isDark ? 0 : 8,

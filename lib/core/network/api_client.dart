@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/models/models.dart';
@@ -347,12 +347,41 @@ class ApiClient {
         data: {
           'rating': rating,
           'comment': comment ?? '',
-          if (reviewerName != null) 'reviewer_name': reviewerName,
+          if (reviewerName != null && reviewerName.isNotEmpty) 'reviewer_name': reviewerName,
+          if (reviewerName != null && reviewerName.isNotEmpty) 'buyer_name': reviewerName,
           'is_recommended': isRecommended,
         },
       );
       return ReviewModel.fromJson(response.data as Map<String, dynamic>);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('createProductReview error: $e');
+      return null;
+    }
+  }
+
+  Future<bool> deleteReview(String productId, String reviewId) async {
+    try {
+      await _dio.delete('/products/$productId/reviews/$reviewId');
+      return true;
+    } catch (e) {
+      debugPrint('deleteReview error: $e');
+      return false;
+    }
+  }
+
+  Future<ReviewModel?> replyToReview({
+    required String productId,
+    required String reviewId,
+    required String reply,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/products/$productId/reviews/$reviewId/reply',
+        data: {'reply': reply},
+      );
+      return ReviewModel.fromJson(response.data as Map<String, dynamic>);
+    } catch (e) {
+      debugPrint('replyToReview error: $e');
       return null;
     }
   }

@@ -4,6 +4,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/models/models.dart';
+import '../../../shared/providers/auth_provider.dart';
 import 'star_rating.dart';
 import 'app_button.dart';
 import 'app_text_field.dart';
@@ -40,12 +41,22 @@ class _ProductReviewsSectionState extends ConsumerState<ProductReviewsSection> {
     }
   }
 
-  Future<void> _loadReviews() async {
-    setState(() => _isLoading = true);
+  Future<void> _loadReviews({bool silent = false}) async {
+    if (!silent) setState(() => _isLoading = true);
     try {
       final api = ref.read(apiClientProvider);
       final reviews = await api.getProductReviews(widget.productId);
-      if (mounted) setState(() { _reviews = reviews; _isLoading = false; });
+      if (mounted) {
+        setState(() {
+          if (silent && reviews.isEmpty && (_reviews?.isNotEmpty ?? false)) {
+            // Keep local optimistic reviews
+          } else {
+            _reviews = reviews;
+          }
+          _isLoading = false;
+          _error = null;
+        });
+      }
     } catch (e) {
       if (mounted) setState(() { _error = e.toString(); _isLoading = false; });
     }
@@ -53,6 +64,9 @@ class _ProductReviewsSectionState extends ConsumerState<ProductReviewsSection> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = ref.watch(authProvider).valueOrNull;
+    final isArtisan = auth?.status == AuthStatus.authenticatedArtisan || auth?.user?.role == 'artisan';
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
     final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
@@ -90,11 +104,12 @@ class _ProductReviewsSectionState extends ConsumerState<ProductReviewsSection> {
           children: [
             Text('Reviews & Ratings',
                 style: AppTextStyles.headlineSmall.copyWith(color: textPrimary)),
-            TextButton.icon(
-              onPressed: () => _showWriteReviewSheet(context),
-              icon: const Icon(Icons.rate_review_outlined, size: 18),
-              label: const Text('Write Review'),
-            ),
+            if (!isArtisan)
+              TextButton.icon(
+                onPressed: () => _showWriteReviewSheet(context),
+                icon: const Icon(Icons.rate_review_outlined, size: 18),
+                label: const Text('Write Review'),
+              ),
           ],
         ),
         const SizedBox(height: 16),
@@ -111,15 +126,20 @@ class _ProductReviewsSectionState extends ConsumerState<ProductReviewsSection> {
         if (reviews.isEmpty)
           EmptyStateView(
             title: 'No reviews yet',
-            subtitle: 'Be the first to review this craft!',
+            subtitle: isArtisan ? 'Reviews from verified buyers will appear here.' : 'Be the first to review this craft!',
             icon: Icons.star_outline_rounded,
-            actionLabel: 'Write First Review',
-            onAction: () => _showWriteReviewSheet(context),
+            actionLabel: isArtisan ? null : 'Write First Review',
+            onAction: isArtisan ? null : () => _showWriteReviewSheet(context),
           )
         else
           ...reviews.map((r) => Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: _ReviewCard(review: r),
+                child: _ReviewCard(
+                  review: r,
+                  isArtisan: isArtisan,
+                  onDelete: () => _deleteReview(r),
+                  onReply: () => _showReplySheet(context, r),
+                ),
               )),
       ],
     );
@@ -202,17 +222,147 @@ class _ProductReviewsSectionState extends ConsumerState<ProductReviewsSection> {
       builder: (_) => _WriteReviewSheet(
         productId: widget.productId,
         onSubmitted: (review) {
-          setState(() => _reviews = [review, ...?_reviews]);
-          _loadReviews();
+          setState(() {
+            final current = _reviews ?? [];
+            _reviews = [review, ...current.where((r) => r.id != review.id)];
+          });
+          _loadReviews(silent: true);
         },
       ),
+    );
+  }
+
+  Future<void> _deleteReview(ReviewModel review) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Review'),
+        content: const Text('Are you sure you want to delete this review?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      final api = ref.read(apiClientProvider);
+      final ok = await api.deleteReview(widget.productId, review.id);
+      if (ok) {
+        setState(() {
+          _reviews = _reviews?.where((r) => r.id != review.id).toList();
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Review deleted successfully.')),
+          );
+        }
+      }
+    }
+  }
+
+  void _showReplySheet(BuildContext context, ReviewModel review) {
+    final messenger = ScaffoldMessenger.of(context);
+    final controller = TextEditingController(text: review.artisanReply ?? '');
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+            left: 20,
+            right: 20,
+            top: 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Artisan Reply', style: AppTextStyles.headlineSmall),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Replying to ${review.buyerName}:',
+                style: AppTextStyles.bodySmall.copyWith(color: Colors.grey),
+              ),
+              if (review.comment != null && review.comment!.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text('"${review.comment}"', style: const TextStyle(fontStyle: FontStyle.italic)),
+              ],
+              const SizedBox(height: 14),
+              TextField(
+                controller: controller,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  hintText: 'Thank the buyer or share your craft story...',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final text = controller.text.trim();
+                    if (text.isEmpty) return;
+                    Navigator.pop(ctx);
+                    final api = ref.read(apiClientProvider);
+                    final updated = await api.replyToReview(
+                      productId: widget.productId,
+                      reviewId: review.id,
+                      reply: text,
+                    );
+                    if (!mounted) return;
+                    if (updated != null) {
+                      setState(() {
+                        _reviews = _reviews?.map((r) => r.id == review.id ? updated : r).toList();
+                      });
+                      messenger.showSnackBar(
+                        const SnackBar(content: Text('Reply posted successfully!'), backgroundColor: Color(0xFF047857)),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.send_rounded, size: 18),
+                  label: const Text('Post Reply'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
 
 class _ReviewCard extends StatelessWidget {
   final ReviewModel review;
-  const _ReviewCard({required this.review});
+  final bool isArtisan;
+  final VoidCallback onDelete;
+  final VoidCallback? onReply;
+
+  const _ReviewCard({
+    required this.review,
+    required this.isArtisan,
+    required this.onDelete,
+    this.onReply,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -278,6 +428,15 @@ class _ReviewCard extends StatelessWidget {
                 ),
               ),
               StarRating(rating: review.rating.toDouble(), starSize: 14),
+              const SizedBox(width: 4),
+              // Delete Review button (available for every user)
+              IconButton(
+                icon: Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red.shade400),
+                tooltip: 'Delete Review',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                onPressed: onDelete,
+              ),
             ],
           ),
           if (review.comment != null && review.comment!.isNotEmpty) ...[
@@ -288,11 +447,86 @@ class _ReviewCard extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 8),
-          if (review.createdAt != null)
-            Text(
-              _formatDate(review.createdAt!),
-              style: AppTextStyles.caption.copyWith(color: textSecondary),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              if (review.createdAt != null)
+                Text(
+                  _formatDate(review.createdAt!),
+                  style: AppTextStyles.caption.copyWith(color: textSecondary),
+                )
+              else
+                const SizedBox.shrink(),
+              // Artisan reply action if not replied yet
+              if (isArtisan && (review.artisanReply == null || review.artisanReply!.isEmpty))
+                TextButton.icon(
+                  onPressed: onReply,
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    minimumSize: const Size(50, 26),
+                  ),
+                  icon: const Icon(Icons.reply_rounded, size: 14),
+                  label: const Text('Reply to Buyer', style: TextStyle(fontSize: 12)),
+                ),
+            ],
+          ),
+
+          // Artisan Reply Box
+          if (review.artisanReply != null && review.artisanReply!.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkSurfaceVariant : const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(10),
+                border: Border(
+                  left: BorderSide(color: isDark ? AppColors.accent : AppColors.primary, width: 3),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.storefront_rounded, size: 14, color: isDark ? AppColors.accent : AppColors.primary),
+                          const SizedBox(width: 5),
+                          Text(
+                            'Artisan Reply',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? AppColors.accent : AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (isArtisan && onReply != null)
+                        InkWell(
+                          onTap: onReply,
+                          child: Text(
+                            'Edit Reply',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? AppColors.accent : AppColors.primary,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    review.artisanReply!,
+                    style: AppTextStyles.bodyMedium.copyWith(color: textPrimary, fontSize: 13, height: 1.35),
+                  ),
+                ],
+              ),
             ),
+          ],
         ],
       ),
     );

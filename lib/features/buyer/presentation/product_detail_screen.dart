@@ -10,6 +10,9 @@ import '../../../shared/providers/auth_provider.dart';
 import '../../../shared/widgets/product_thumbnail.dart';
 import '../../../shared/widgets/product_reviews_section.dart';
 import '../../../shared/widgets/app_avatar.dart';
+import '../../../shared/widgets/shimmer_loader.dart';
+import '../../artisan/presentation/artisan_catalogue_screen.dart';
+import 'buyer_marketplace_screen.dart';
 
 final productDetailProvider = FutureProvider.autoDispose.family<ProductModel, String>((ref, id) async {
   final api = ref.read(apiClientProvider);
@@ -38,35 +41,66 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
 
   int get _totalPrice => _unitPrice * _quantity;
 
+  Future<void> _confirmDeleteProduct(String title) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626)),
+            SizedBox(width: 8),
+            Text('Delete Product'),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to delete "$title"? This action cannot be undone and will permanently remove this item.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      if (!widget.productId.startsWith('p')) {
+        await ref.read(apiClientProvider).deleteProduct(widget.productId);
+      }
+      ref.invalidate(artisanProductsProvider);
+      ref.invalidate(marketplaceProductsProvider);
+      if (!mounted) return;
+      context.pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Product deleted successfully.'),
+          backgroundColor: Color(0xFFDC2626),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to delete product: $e'),
+          backgroundColor: const Color(0xFFDC2626),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final productAsync = ref.watch(productDetailProvider(widget.productId));
-    final product = productAsync.valueOrNull;
-
-    final title = product != null
-        ? (_language == 'English' ? product.titleEn : (product.titleHi.isNotEmpty ? product.titleHi : product.titleEn))
-        : 'Handwoven Varanasi Pure Silk Dupatta with Zari Border';
-    final imageUrl = (product?.imageUrl != null && product!.imageUrl!.isNotEmpty)
-        ? product.imageUrl!
-        : 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=800';
-    final location = product?.region ?? product?.state ?? 'Varanasi, Uttar Pradesh';
-    final artisanName = (product?.artisanName != null && product!.artisanName!.isNotEmpty)
-        ? product.artisanName!
-        : 'Ramesh Sharma';
-    final artisanCraft = (product?.craft != null && product!.craft!.isNotEmpty)
-        ? product.craft!
-        : (product?.category ?? 'Master Handicrafts');
-    final hasGi = product?.giTag ?? true;
-    final rating = product?.rating != null && product!.rating > 0 ? product.rating : 4.8;
-    final reviewCount = product?.reviewCount != null && product!.reviewCount > 0 ? product.reviewCount : 34;
-    final desc = product != null
-        ? (_language == 'English'
-            ? (product.descriptionEn?.isNotEmpty == true ? product.descriptionEn! : 'Authentic mastercrafted artisan creation.')
-            : (product.descriptionHi?.isNotEmpty == true ? product.descriptionHi! : product.descriptionEn ?? 'पारंपरिक प्रामाणिक कारीगर रचना।'))
-        : (_language == 'English'
-            ? 'This exquisite dupatta is handwoven on a traditional pit loom in the lanes of Varanasi. Master weaver Ramesh Sharma uses pure mulberry silk threads and real zari to create intricate floral jaal patterns passed down through four generations. The natural dyeing process uses indigo and madder roots, ensuring skin-friendly, sustainable color.'
-            : 'यह उत्कृष्ट दुपट्टा वाराणसी की गलियों में पारंपरिक गड्ढा करघे पर हाथ से बुना गया है। मास्टर बुनकर रमेश शर्मा चार पीढ़ियों से चली आ रही जटिल पुष्प जाल पैटर्न बनाने के लिए शुद्ध शहतूत रेशम के धागे और असली ज़री का उपयोग करते हैं। प्राकृतिक रंगाई प्रक्रिया में नील और मजीठ की जड़ों का उपयोग किया जाता है।');
-
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
@@ -74,6 +108,113 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
     final surface = isDark ? AppColors.darkSurface : Colors.white;
     final border = isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0);
     final surfaceVariant = isDark ? AppColors.darkSurfaceVariant : const Color(0xFFF1F5F9);
+
+    final productAsync = ref.watch(productDetailProvider(widget.productId));
+
+    // Skeleton screen when loading
+    if (productAsync.isLoading) {
+      return Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        appBar: AppBar(
+          backgroundColor: surface,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_rounded, color: textPrimary),
+            onPressed: () => context.pop(),
+          ),
+          title: Text(
+            'Product Details',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: textPrimary,
+            ),
+          ),
+          actions: [
+            IconButton(
+              icon: Icon(Icons.close_rounded, color: textSecondary),
+              onPressed: () => context.pop(),
+            ),
+          ],
+        ),
+        body: SingleChildScrollView(
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const ShimmerLoader(width: double.infinity, height: 220, borderRadius: 18),
+              const SizedBox(height: 16),
+              const ShimmerLoader(width: double.infinity, height: 22, borderRadius: 6),
+              const SizedBox(height: 8),
+              const ShimmerLoader(width: 200, height: 18, borderRadius: 6),
+              const SizedBox(height: 16),
+              const ShimmerLoader(width: 140, height: 28, borderRadius: 8),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: border),
+                ),
+                child: const Row(
+                  children: [
+                    ShimmerLoader(width: 48, height: 48, borderRadius: 24),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ShimmerLoader(width: 140, height: 14),
+                          SizedBox(height: 8),
+                          ShimmerLoader(width: 100, height: 12),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              const ShimmerLoader(width: double.infinity, height: 14),
+              const SizedBox(height: 8),
+              const ShimmerLoader(width: double.infinity, height: 14),
+              const SizedBox(height: 8),
+              const ShimmerLoader(width: 180, height: 14),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final product = productAsync.valueOrNull;
+
+    final title = product != null
+        ? (_language == 'English' ? product.titleEn : (product.titleHi.isNotEmpty ? product.titleHi : product.titleEn))
+        : 'Handicraft Product';
+    final imageUrl = (product?.imageUrl != null && product!.imageUrl!.isNotEmpty)
+        ? product.imageUrl!
+        : '';
+    final location = product?.region ?? product?.state ?? 'India';
+    final artisanName = (product?.artisanName != null && product!.artisanName!.isNotEmpty)
+        ? product.artisanName!
+        : 'Artisan Creator';
+    final artisanCraft = (product?.craft != null && product!.craft!.isNotEmpty)
+        ? product.craft!
+        : (product?.category ?? 'Master Handicrafts');
+    final hasGi = product?.giTag ?? false;
+    final rating = product?.rating != null && product!.rating > 0 ? product.rating : 4.8;
+    final reviewCount = product?.reviewCount != null && product!.reviewCount > 0 ? product.reviewCount : 0;
+    final desc = product != null
+        ? (_language == 'English'
+            ? (product.descriptionEn?.isNotEmpty == true ? product.descriptionEn! : 'Authentic mastercrafted artisan creation.')
+            : (product.descriptionHi?.isNotEmpty == true ? product.descriptionHi! : product.descriptionEn ?? 'पारंपरिक प्रामाणिक कारीगर रचना।'))
+        : (_language == 'English'
+            ? 'Handcrafted authentic artisan product preserving traditional cultural heritage.'
+            : 'पारंपरिक सांस्कृतिक विरासत को संरक्षित करने वाला हस्तनिर्मित प्रामाणिक कारीगर उत्पाद।');
+
+    final auth = ref.watch(authProvider).valueOrNull;
+    final isArtisan = auth?.user?.role.toLowerCase() == 'artisan';
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -93,6 +234,12 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
           ),
         ),
         actions: [
+          if (isArtisan)
+            IconButton(
+              icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFDC2626)),
+              tooltip: 'Delete Product',
+              onPressed: () => _confirmDeleteProduct(title),
+            ),
           IconButton(
             icon: Icon(Icons.close_rounded, color: textSecondary),
             onPressed: () => context.pop(),

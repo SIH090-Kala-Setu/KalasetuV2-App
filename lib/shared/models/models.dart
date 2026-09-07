@@ -470,6 +470,8 @@ class ReviewModel {
   final DateTime? createdAt;
   final bool isVerifiedBuyer;
   final bool isRecommended;
+  final String? artisanReply;
+  final DateTime? replyAt;
 
   const ReviewModel({
     required this.id,
@@ -481,6 +483,8 @@ class ReviewModel {
     this.createdAt,
     this.isVerifiedBuyer = false,
     this.isRecommended = true,
+    this.artisanReply,
+    this.replyAt,
   });
 
   factory ReviewModel.fromJson(Map<String, dynamic> json) => ReviewModel(
@@ -499,6 +503,10 @@ class ReviewModel {
         isRecommended: json['is_recommended'] as bool? ??
             json['isRecommended'] as bool? ??
             true,
+        artisanReply: json['artisan_reply'] as String? ?? json['artisanReply'] as String?,
+        replyAt: DateTime.tryParse(
+          json['reply_at']?.toString() ?? json['replyAt']?.toString() ?? '',
+        ),
       );
 }
 
