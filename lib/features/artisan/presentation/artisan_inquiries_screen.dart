@@ -113,12 +113,32 @@ class ArtisanInquiriesScreen extends ConsumerWidget {
                         separatorBuilder: (_, __) => const SizedBox(height: 12),
                         itemBuilder: (context, index) {
                           final item = items[index];
-                          final isNew = item.status == 'inquiry-sent' || item.status == 'New' || item.status == 'Pending';
+                          final s = item.status.toLowerCase();
+                          final isAccepted = s.contains('accept') || s.contains('complet') || s.contains('final');
+                          final isDeclined = s.contains('decline') || s.contains('denied') || s.contains('reject');
+                          final isNew = item.status == 'inquiry-sent' || s.contains('new') || s.contains('pending');
+
+                          final Color statusBg = isAccepted
+                              ? const Color(0xFFD1FAE5)
+                              : isDeclined
+                                  ? const Color(0xFFFEE2E2)
+                                  : isNew
+                                      ? const Color(0xFFFEF3C7)
+                                      : const Color(0xFFDBEAFE);
+
+                          final Color statusColor = isAccepted
+                              ? const Color(0xFF047857)
+                              : isDeclined
+                                  ? const Color(0xFFB91C1C)
+                                  : isNew
+                                      ? const Color(0xFFD97706)
+                                      : const Color(0xFF1D4ED8);
+
                           return _InquiryListItem(
                             buyer: item.buyerName,
                             status: item.status,
-                            statusBg: isNew ? const Color(0xFFFEF3C7) : const Color(0xFFD1FAE5),
-                            statusColor: isNew ? const Color(0xFFD97706) : const Color(0xFF047857),
+                            statusBg: statusBg,
+                            statusColor: statusColor,
                             description: '${item.quantity} units · ${item.productTitle.isNotEmpty ? item.productTitle : "Artisan Craft"}',
                             time: item.createdAt != null
                                 ? '${item.createdAt!.day}/${item.createdAt!.month}/${item.createdAt!.year}'
@@ -129,6 +149,8 @@ class ArtisanInquiriesScreen extends ConsumerWidget {
                               item.id,
                               item.buyerName,
                               '${item.quantity} units · ${item.productTitle}\n${item.note ?? ""}',
+                              status: item.status,
+                              responseMessage: item.responseMessage,
                             ),
                           );
                         },
@@ -149,7 +171,14 @@ class ArtisanInquiriesScreen extends ConsumerWidget {
                           statusColor: item['statusColor'] as Color,
                           description: item['description'] as String,
                           time: item['time'] as String,
-                          onTap: () => _showInquiryDetailsModal(context, ref, null, item['buyer'] as String, item['description'] as String),
+                          onTap: () => _showInquiryDetailsModal(
+                            context,
+                            ref,
+                            null,
+                            item['buyer'] as String,
+                            item['description'] as String,
+                            status: item['status'] as String,
+                          ),
                         );
                       },
                     ),
@@ -163,25 +192,57 @@ class ArtisanInquiriesScreen extends ConsumerWidget {
     );
   }
 
-  void _showInquiryDetailsModal(BuildContext context, WidgetRef ref, String? inquiryId, String buyer, String desc) {
+  void _showInquiryDetailsModal(
+    BuildContext context,
+    WidgetRef ref,
+    String? inquiryId,
+    String buyer,
+    String desc, {
+    String status = 'Pending',
+    String? responseMessage,
+  }) {
+    final s = status.toLowerCase();
+    final isAccepted = s.contains('accept') || s.contains('complet') || s.contains('final');
+    final isDeclined = s.contains('decline') || s.contains('denied') || s.contains('reject');
+    final isResponded = s.contains('respond') && !isAccepted && !isDeclined;
+
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 20,
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  buyer,
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.primary),
+                Expanded(
+                  child: Text(
+                    buyer,
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.primary),
+                  ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.close),
@@ -190,63 +251,230 @@ class ArtisanInquiriesScreen extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Text(desc, style: const TextStyle(fontSize: 14, color: Color(0xFF64748B))),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () async {
-                      Navigator.pop(ctx);
-                      if (inquiryId != null) {
-                        try {
-                          await ref.read(apiClientProvider).respondToInquiry(inquiryId, 'Inquiry declined by artisan.');
-                          ref.invalidate(artisanInquiriesProvider);
-                        } catch (_) {}
-                      }
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Inquiry declined')),
-                        );
-                      }
-                    },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFDC2626),
-                      side: const BorderSide(color: Color(0xFFDC2626)),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: const Text('Decline'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      Navigator.pop(ctx);
-                      if (inquiryId != null) {
-                        try {
-                          await ref.read(apiClientProvider).respondToInquiry(inquiryId, 'Inquiry accepted! We are preparing the order.');
-                          ref.invalidate(artisanInquiriesProvider);
-                        } catch (_) {}
-                      }
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Accepted inquiry from $buyer!')),
-                        );
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF15803D),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: const Text('Accept Inquiry'),
-                  ),
-                ),
-              ],
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Text(
+                desc.trim(),
+                style: const TextStyle(fontSize: 14, color: Color(0xFF334155), height: 1.4),
+              ),
             ),
+            const SizedBox(height: 18),
+
+            // If already resolved, show the resolution status banner instead of action buttons!
+            if (isAccepted) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDF4),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFF86EFAC)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.check_circle_rounded, color: Color(0xFF15803D), size: 22),
+                        SizedBox(width: 8),
+                        Text(
+                          'Inquiry Accepted',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF15803D),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      responseMessage != null && responseMessage.isNotEmpty
+                          ? 'Response: $responseMessage'
+                          : 'You accepted this inquiry! Order preparation is underway.',
+                      style: const TextStyle(fontSize: 13, color: Color(0xFF166534)),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Close'),
+                ),
+              ),
+            ] else if (isDeclined) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF2F2),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFFCA5A5)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.cancel_rounded, color: Color(0xFFDC2626), size: 22),
+                        SizedBox(width: 8),
+                        Text(
+                          'Inquiry Declined',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFFDC2626),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      responseMessage != null && responseMessage.isNotEmpty
+                          ? 'Response: $responseMessage'
+                          : 'You declined this inquiry.',
+                      style: const TextStyle(fontSize: 13, color: Color(0xFF991B1B)),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Close'),
+                ),
+              ),
+            ] else if (isResponded) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFF93C5FD)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.chat_bubble_outline_rounded, color: Color(0xFF1D4ED8), size: 22),
+                        SizedBox(width: 8),
+                        Text(
+                          'Responded to Buyer',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF1D4ED8),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      responseMessage ?? 'Your response was sent to the buyer.',
+                      style: const TextStyle(fontSize: 13, color: Color(0xFF1E40AF)),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Close'),
+                ),
+              ),
+            ] else ...[
+              // Still pending / unresolved: Show both Decline and Accept buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        if (inquiryId != null) {
+                          try {
+                            await ref.read(apiClientProvider).respondToInquiry(
+                              inquiryId,
+                              'Inquiry declined by artisan.',
+                              status: 'Declined',
+                            );
+                            ref.invalidate(artisanInquiriesProvider);
+                          } catch (_) {}
+                        }
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Inquiry declined')),
+                          );
+                        }
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFDC2626),
+                        side: const BorderSide(color: Color(0xFFDC2626)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('Decline'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        if (inquiryId != null) {
+                          try {
+                            await ref.read(apiClientProvider).respondToInquiry(
+                              inquiryId,
+                              'Inquiry accepted! We are preparing the order.',
+                              status: 'Accepted',
+                            );
+                            ref.invalidate(artisanInquiriesProvider);
+                          } catch (_) {}
+                        }
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Accepted inquiry from $buyer!')),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF15803D),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('Accept Inquiry'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),

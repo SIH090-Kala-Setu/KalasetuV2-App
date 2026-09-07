@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
@@ -31,6 +32,181 @@ const _profileLanguages = [
   ('gu', 'ગુજરાતી', 'Gujarati', 'નમસ્તે'),
   ('kn', 'ಕನ್ನಡ', 'Kannada', 'ನಮಸ್ಕಾರ'),
 ];
+
+const Map<String, Map<String, String>> _profileTranslations = {
+  'en': {
+    'performance': 'My Performance',
+    'totalProducts': 'Total Products',
+    'totalOrders': 'Total Orders',
+    'revenue': 'Revenue',
+    'settings': 'Settings',
+    'editProfile': 'Edit Profile',
+    'editProfileSub': 'Name, craft, location, experience & story',
+    'darkMode': 'Dark Mode',
+    'language': 'Language',
+    'bankUpi': 'Bank & UPI Details',
+    'bankUpiSub': 'Edit payout account & UPI ID',
+    'portfolioUrl': 'My Portfolio URL',
+    'portfolioUrlSub': 'Share your artisan profile',
+    'salesReport': 'Download Sales Report',
+    'salesReportSub': 'Export product CSV to device',
+    'serverConfig': 'Server Configuration',
+    'logout': 'Logout',
+    'certified': 'MoSJE Certified',
+    'kycPending': 'KYC Pending',
+  },
+  'hi': {
+    'performance': 'मेरा प्रदर्शन',
+    'totalProducts': 'कुल उत्पाद',
+    'totalOrders': 'कुल ऑर्डर',
+    'revenue': 'अनुमानित आय',
+    'settings': 'सेटिंग्स',
+    'editProfile': 'प्रोफ़ाइल संपादित करें',
+    'editProfileSub': 'नाम, शिल्प, स्थान, अनुभव और कहानी',
+    'darkMode': 'डार्क मोड',
+    'language': 'भाषा',
+    'bankUpi': 'बैंक और यूपीआई विवरण',
+    'bankUpiSub': 'भुगतान खाता और यूपीआई संपादित करें',
+    'portfolioUrl': 'मेरा पोर्टफोलियो लिंक',
+    'portfolioUrlSub': 'अपनी कारीगर प्रोफ़ाइल साझा करें',
+    'salesReport': 'बिक्री रिपोर्ट डाउनलोड करें',
+    'salesReportSub': 'डिवाइस पर उत्पाद CSV निर्यात करें',
+    'serverConfig': 'सर्वर कॉन्फ़िगरेशन',
+    'logout': 'लॉगआउट',
+    'certified': 'MoSJE प्रमाणित',
+    'kycPending': 'केवाईसी लंबित',
+  },
+  'bn': {
+    'performance': 'আমার কর্মক্ষমতা',
+    'totalProducts': 'মোট পণ্য',
+    'totalOrders': 'মোট অর্ডার',
+    'revenue': 'আনুমানিক আয়',
+    'settings': 'সেটিংস',
+    'editProfile': 'প্রোফাইল সম্পাদনা করুন',
+    'editProfileSub': 'নাম, কারুশিল্প, অবস্থান, অভিজ্ঞতা ও গল্প',
+    'darkMode': 'ডার্ক মোড',
+    'language': 'ভাষা',
+    'bankUpi': 'ব্যাংক ও ইউপিআই বিবরণ',
+    'bankUpiSub': 'পেআউট অ্যাকাউন্ট ও ইউপিআই সম্পাদনা করুন',
+    'portfolioUrl': 'আমার পোর্টফোলিও লিঙ্ক',
+    'portfolioUrlSub': 'আপনার কারিগর প্রোফাইল শেয়ার করুন',
+    'salesReport': 'বিক্রয় প্রতিবেদন ডাউনলোড করুন',
+    'salesReportSub': 'ডিভাইসে পণ্য CSV ডাউনলোড করুন',
+    'serverConfig': 'সার্ভার কনফিগারেশন',
+    'logout': 'লগআউট',
+    'certified': 'MoSJE প্রত্যয়িত',
+    'kycPending': 'কেওয়াইসি মুলতুবি',
+  },
+  'te': {
+    'performance': 'నా పనితీరు',
+    'totalProducts': 'మొత్తం ఉత్పత్తులు',
+    'totalOrders': 'మొత్తం ఆర్డర్లు',
+    'revenue': 'అంచనా ఆదాయం',
+    'settings': 'సెట్టింగ్‌లు',
+    'editProfile': 'ప్రొఫైల్ సవరించండి',
+    'editProfileSub': 'పేరు, కళ, ప్రాంతం, అనుభవం & కథ',
+    'darkMode': 'డార్క్ మోడ్',
+    'language': 'భాష',
+    'bankUpi': 'బ్యాంక్ మరియు UPI వివరాలు',
+    'bankUpiSub': 'చెల్లింపు ఖాతా & UPI ID సవరించండి',
+    'portfolioUrl': 'నా పోర్ట్‌ఫోలియో URL',
+    'portfolioUrlSub': 'మీ కళాకారుడి ప్రొఫైల్‌ను పంచుకోండి',
+    'salesReport': 'విక్రయాల నివేదిక డౌన్‌లోడ్',
+    'salesReportSub': 'డివైజ్‌కు ప్రొడక్ట్ CSV ఎగుమతి చేయండి',
+    'serverConfig': 'సర్వర్ కాన్ఫిగరేషన్',
+    'logout': 'లాగ్ అవుట్',
+    'certified': 'MoSJE ధృవీకరించబడింది',
+    'kycPending': 'KYC పెండింగ్‌లో ఉంది',
+  },
+  'ta': {
+    'performance': 'எனது செயல்திறன்',
+    'totalProducts': 'மொத்த தயாரிப்புகள்',
+    'totalOrders': 'மொத்த ஆர்டர்கள்',
+    'revenue': 'மதிப்பிடப்பட்ட வருவாய்',
+    'settings': 'அமைப்புகள்',
+    'editProfile': 'சுயவிவரத்தைத் திருத்து',
+    'editProfileSub': 'பெயர், கைவினை, இருப்பிடம், அனுபவம் & கதை',
+    'darkMode': 'இருண்ட பயன்முறை',
+    'language': 'மொழி',
+    'bankUpi': 'வங்கி & UPI விவரங்கள்',
+    'bankUpiSub': 'பணம் பெறும் கணக்கு & UPI ஐ மாற்றவும்',
+    'portfolioUrl': 'எனது போர்ட்ஃபோலியோ இணைப்பு',
+    'portfolioUrlSub': 'உங்கள் கைவினைஞர் சுயவிவரத்தைப் பகிரவும்',
+    'salesReport': 'விற்பனை அறிக்கையைப் பதிவிறக்குக',
+    'salesReportSub': 'சாதனத்திற்கு தயாரிப்பு CSV ஐ ஏற்றுமதி செய்',
+    'serverConfig': 'சர்வர் கட்டமைப்பு',
+    'logout': 'வெளியேறு',
+    'certified': 'MoSJE சான்றளிக்கப்பட்டது',
+    'kycPending': 'KYC நிலுவையில் உள்ளது',
+  },
+  'mr': {
+    'performance': 'माझी कामगिरी',
+    'totalProducts': 'एकूण उत्पादने',
+    'totalOrders': 'एकूण मागण्या',
+    'revenue': 'अंदाजे उत्पन्न',
+    'settings': 'सेटिंग्ज',
+    'editProfile': 'प्रोफाइल संपादित करा',
+    'editProfileSub': 'नाव, हस्तकला, ठिकाण, अनुभव आणि कथा',
+    'darkMode': 'डार्क मोड',
+    'language': 'भाषा',
+    'bankUpi': 'बँक आणि युपीआय तपशील',
+    'bankUpiSub': 'पेआउट खाते आणि युपीआय आयडी बदला',
+    'portfolioUrl': 'माझा पोर्टफोलिओ दुवा',
+    'portfolioUrlSub': 'आपले कारागीर प्रोफाइल शेअर करा',
+    'salesReport': 'विक्री अहवाल डाउनलोड करा',
+    'salesReportSub': 'डिव्हाइसवर उत्पादन CSV सेव्ह करा',
+    'serverConfig': 'सर्व्हर कॉन्फिगरेशन',
+    'logout': 'लॉगआउट',
+    'certified': 'MoSJE प्रमाणित',
+    'kycPending': 'केवायसी प्रलंबित',
+  },
+  'gu': {
+    'performance': 'મારું પ્રદર્શન',
+    'totalProducts': 'કુલ ઉત્પાદનો',
+    'totalOrders': 'કુલ ઓર્ડર',
+    'revenue': 'અંદાજિત આવક',
+    'settings': 'સેટિંગ્સ',
+    'editProfile': 'પ્રોફાઇલ સંપાદિત કરો',
+    'editProfileSub': 'નામ, હસ્તકલા, સ્થળ, અનુભવ અને વાર્તા',
+    'darkMode': 'ડાર્ક મોડ',
+    'language': 'ભાષા',
+    'bankUpi': 'બેંક અને UPI વિગતો',
+    'bankUpiSub': 'પેઆઉટ ખાતું અને UPI ID સંપાદિત કરો',
+    'portfolioUrl': 'મારો પોર્ટફોલિયો લિંક',
+    'portfolioUrlSub': 'તમારી કારીગર પ્રોફાઇલ શેર કરો',
+    'salesReport': 'વેચાણ અહેવાલ ડાઉનલોડ કરો',
+    'salesReportSub': 'ઉપકરણ પર ઉત્પાદન CSV નિકાસ કરો',
+    'serverConfig': 'સર્વર રૂપરેખાંકન',
+    'logout': 'લૉગ આઉટ',
+    'certified': 'MoSJE પ્રમાણિત',
+    'kycPending': 'KYC બાકી છે',
+  },
+  'kn': {
+    'performance': 'ನನ್ನ ಕಾರ್ಯಕ್ಷಮತೆ',
+    'totalProducts': 'ಒಟ್ಟು ಉತ್ಪನ್ನಗಳು',
+    'totalOrders': 'ಒಟ್ಟು ಆದೇಶಗಳು',
+    'revenue': 'ಅಂದಾಜು ಆದಾಯ',
+    'settings': 'ಸೆಟ್ಟಿಂಗ್‌ಗಳು',
+    'editProfile': 'ಪ್ರೊಫೈಲ್ ಸಂಪಾದಿಸಿ',
+    'editProfileSub': 'ಹೆಸರು, ಕರಕುಶಲ, ಸ್ಥಳ, ಅನುಭವ ಮತ್ತು ಕಥೆ',
+    'darkMode': 'ಡಾರ್ಕ್ ಮೋಡ್',
+    'language': 'ಭಾಷೆ',
+    'bankUpi': 'ಬ್ಯಾಂಕ್ ಮತ್ತು ಯುಪಿಐ ವಿವರಗಳು',
+    'bankUpiSub': 'ಪಾವತಿ ಖಾತೆ & UPI ID ಸಂಪಾದಿಸಿ',
+    'portfolioUrl': 'ನನ್ನ ಪೋರ್ಟ್‌ಫೋಲಿಯೊ URL',
+    'portfolioUrlSub': 'ನಿಮ್ಮ ಕುಶಲಕರ್ಮಿ ಪ್ರೊಫೈಲ್ ಹಂಚಿಕೊಳ್ಳಿ',
+    'salesReport': 'ಮಾರಾಟ ವರದಿಯನ್ನು ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ',
+    'salesReportSub': 'ಸಾಧನಕ್ಕೆ ಉತ್ಪನ್ನ CSV ರಫ್ತು ಮಾಡಿ',
+    'serverConfig': 'ಸರ್ವರ್ ಸಂರಚನೆ',
+    'logout': 'ಲಾಗ್‌ಔಟ್',
+    'certified': 'MoSJE ಪ್ರಮಾಣೀಕರಿಸಲಾಗಿದೆ',
+    'kycPending': 'KYC ಬಾಕಿ ಇದೆ',
+  },
+};
+
+String _profileTr(String lang, String key) {
+  return _profileTranslations[lang]?[key] ?? _profileTranslations['en']?[key] ?? key;
+}
 
 final _artisanAnalyticsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   final api = ref.read(apiClientProvider);
@@ -90,9 +266,9 @@ class ArtisanProfileScreen extends ConsumerWidget {
                             if (user?.isVerified == true) ...[
                               const Icon(Icons.verified_rounded, color: AppColors.accent, size: 16),
                               const SizedBox(width: 4),
-                              Text('MoSJE Certified', style: AppTextStyles.labelSmall.copyWith(color: AppColors.accent)),
+                              Text(_profileTr(currentLocale.languageCode, 'certified'), style: AppTextStyles.labelSmall.copyWith(color: AppColors.accent)),
                             ] else
-                              const StatusBadge(status: BadgeStatus.pending, customLabel: 'KYC Pending'),
+                              StatusBadge(status: BadgeStatus.pending, customLabel: _profileTr(currentLocale.languageCode, 'kycPending')),
                             const SizedBox(width: 12),
                             const Icon(Icons.location_on_outlined, color: Colors.white54, size: 14),
                             const SizedBox(width: 4),
@@ -109,12 +285,12 @@ class ArtisanProfileScreen extends ConsumerWidget {
             actions: [
               IconButton(
                 icon: const Icon(Icons.edit_rounded, color: Colors.white),
-                tooltip: 'Edit Profile',
+                tooltip: _profileTr(currentLocale.languageCode, 'editProfile'),
                 onPressed: () => _showEditArtisanProfileModal(context, ref, user),
               ),
               IconButton(
                 icon: const Icon(Icons.share_rounded, color: Colors.white),
-                tooltip: 'Share Portfolio',
+                tooltip: _profileTr(currentLocale.languageCode, 'portfolioUrl'),
                 onPressed: () => context.push(
                   RouteNames.artisanPortfolio(user?.id ?? ''),
                 ),
@@ -134,17 +310,17 @@ class ArtisanProfileScreen extends ConsumerWidget {
                     const Divider(),
                     const SizedBox(height: 16),
                     // Settings
-                    Text('Settings', style: AppTextStyles.headlineSmall),
+                    Text(_profileTr(currentLocale.languageCode, 'settings'), style: AppTextStyles.headlineSmall),
                     const SizedBox(height: 12),
                     _SettingsTile(
                       icon: Icons.person_outline_rounded,
-                      title: 'Edit Profile',
-                      subtitle: 'Name, craft, location, experience & story',
+                      title: _profileTr(currentLocale.languageCode, 'editProfile'),
+                      subtitle: _profileTr(currentLocale.languageCode, 'editProfileSub'),
                       onTap: () => _showEditArtisanProfileModal(context, ref, user),
                     ),
                     _SettingsTile(
                       icon: Icons.dark_mode_outlined,
-                      title: 'Dark Mode',
+                      title: _profileTr(currentLocale.languageCode, 'darkMode'),
                       trailing: Switch(
                         value: isDark,
                         onChanged: (_) => ref.read(themeModeProvider.notifier).toggleLightDark(),
@@ -152,36 +328,36 @@ class ArtisanProfileScreen extends ConsumerWidget {
                     ),
                     _SettingsTile(
                       icon: Icons.language_rounded,
-                      title: 'Language',
+                      title: _profileTr(currentLocale.languageCode, 'language'),
                       subtitle: '${currentLang.$2} (${currentLang.$3})',
                       onTap: () => _showLanguagePicker(context, ref),
                     ),
                     _SettingsTile(
                       icon: Icons.account_balance_outlined,
-                      title: 'Bank & UPI Details',
-                      subtitle: 'Edit payout account & UPI ID',
+                      title: _profileTr(currentLocale.languageCode, 'bankUpi'),
+                      subtitle: _profileTr(currentLocale.languageCode, 'bankUpiSub'),
                       onTap: () => _showBankDetailsModal(context, ref),
                     ),
                     _SettingsTile(
                       icon: Icons.link_rounded,
-                      title: 'My Portfolio URL',
-                      subtitle: 'Share your artisan profile',
+                      title: _profileTr(currentLocale.languageCode, 'portfolioUrl'),
+                      subtitle: _profileTr(currentLocale.languageCode, 'portfolioUrlSub'),
                       onTap: () => context.push(RouteNames.artisanPortfolio(user?.id ?? '')),
                     ),
                     _SettingsTile(
                       icon: Icons.download_rounded,
-                      title: 'Download Sales Report',
-                      subtitle: 'Export product CSV to device',
+                      title: _profileTr(currentLocale.languageCode, 'salesReport'),
+                      subtitle: _profileTr(currentLocale.languageCode, 'salesReportSub'),
                       onTap: () => _downloadSalesReport(context, ref),
                     ),
                     _SettingsTile(
                       icon: Icons.settings_rounded,
-                      title: 'Server Configuration',
+                      title: _profileTr(currentLocale.languageCode, 'serverConfig'),
                       onTap: () => ServerConfigDialog.show(context),
                     ),
                     const SizedBox(height: 24),
                     AppButton.danger(
-                      label: 'Logout',
+                      label: _profileTr(currentLocale.languageCode, 'logout'),
                       leadingIcon: Icons.logout_rounded,
                       onPressed: () async {
                         await ref.read(authProvider.notifier).logout();
@@ -1294,7 +1470,26 @@ Future<void> _downloadSalesReport(BuildContext context, WidgetRef ref) async {
       return;
     }
 
-    final dir = await getApplicationDocumentsDirectory();
+    if (Platform.isAndroid) {
+      try {
+        await Permission.storage.request();
+      } catch (_) {}
+    }
+
+    Directory? dir;
+    if (Platform.isAndroid) {
+      final publicDownload = Directory('/storage/emulated/0/Download');
+      if (publicDownload.existsSync()) {
+        dir = publicDownload;
+      } else {
+        try {
+          final ext = await getExternalStorageDirectory();
+          if (ext != null) dir = ext;
+        } catch (_) {}
+      }
+    }
+    dir ??= await getApplicationDocumentsDirectory();
+
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final fileName = 'KalaSetu_Sales_Report_$timestamp.csv';
     final file = File('${dir.path}/$fileName');
@@ -1397,10 +1592,33 @@ Future<void> _downloadSalesReport(BuildContext context, WidgetRef ref) async {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  AppButton(
-                    label: 'Done',
-                    variant: AppButtonVariant.outlined,
-                    onPressed: () => Navigator.pop(ctx),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.table_chart_outlined, size: 18),
+                          label: const Text('Preview Report'),
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _showCsvPreviewModal(context, reportData, fileName, isDark);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: AppButton(
+                          label: 'Done',
+                          variant: AppButtonVariant.outlined,
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -1422,9 +1640,188 @@ Future<void> _downloadSalesReport(BuildContext context, WidgetRef ref) async {
   }
 }
 
+void _showCsvPreviewModal(BuildContext context, String csvData, String fileName, bool isDark) {
+  final lines = csvData.trim().split('\n').where((l) => l.trim().isNotEmpty).toList();
+  if (lines.isEmpty) return;
+
+  final rows = lines.skip(1).map((l) => l.split(',').map((c) => c.trim().replaceAll('"', '')).toList()).toList();
+
+  int totalStock = 0;
+  double totalRevenue = 0.0;
+  for (final r in rows) {
+    if (r.length > 3) totalStock += int.tryParse(r[3]) ?? 0;
+    if (r.length > 8) totalRevenue += double.tryParse(r[8]) ?? 0.0;
+  }
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (ctx) => DraggableScrollableSheet(
+      initialChildSize: 0.75,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (_, scrollController) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Sales Report Preview',
+                        style: AppTextStyles.headlineSmall.copyWith(
+                          color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                        ),
+                      ),
+                      Text(
+                        fileName,
+                        style: AppTextStyles.caption.copyWith(
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Listings', style: AppTextStyles.caption),
+                        Text('${rows.length}', style: AppTextStyles.titleMedium.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.info.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Total Stock', style: AppTextStyles.caption),
+                        Text('$totalStock pcs', style: AppTextStyles.titleMedium.copyWith(color: AppColors.info, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.success.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Est. Revenue', style: AppTextStyles.caption),
+                        Text(AppFormatters.inrCompact(totalRevenue), style: AppTextStyles.titleMedium.copyWith(color: AppColors.success, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: SingleChildScrollView(
+                controller: scrollController,
+                scrollDirection: Axis.vertical,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: DataTable(
+                    columnSpacing: 16,
+                    headingRowColor: WidgetStateProperty.all(
+                      isDark ? Colors.white10 : Colors.grey.shade100,
+                    ),
+                    columns: const [
+                      DataColumn(label: Text('Product')),
+                      DataColumn(label: Text('Status')),
+                      DataColumn(label: Text('Stock')),
+                      DataColumn(label: Text('Base Price')),
+                      DataColumn(label: Text('Views')),
+                      DataColumn(label: Text('Inquiries')),
+                      DataColumn(label: Text('Est. Revenue')),
+                    ],
+                    rows: rows.map((r) {
+                      final title = r.length > 1 ? r[1] : '';
+                      final status = r.length > 2 ? r[2] : '';
+                      final stock = r.length > 3 ? r[3] : '0';
+                      final price = r.length > 4 ? '₹${r[4]}' : '₹0';
+                      final views = r.length > 5 ? r[5] : '0';
+                      final inqs = r.length > 6 ? r[6] : '0';
+                      final rev = r.length > 8 ? '₹${r[8]}' : '₹0';
+
+                      return DataRow(cells: [
+                        DataCell(SizedBox(
+                          width: 140,
+                          child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                        )),
+                        DataCell(Text(status)),
+                        DataCell(Text(stock)),
+                        DataCell(Text(price)),
+                        DataCell(Text(views)),
+                        DataCell(Text(inqs)),
+                        DataCell(Text(rev, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.success))),
+                      ]);
+                    }).toList(),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
 class _AnalyticsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(localeProvider).languageCode;
     final analyticsAsync = ref.watch(_artisanAnalyticsProvider);
     return analyticsAsync.when(
       data: (data) {
@@ -1435,26 +1832,26 @@ class _AnalyticsSection extends ConsumerWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('My Performance', style: AppTextStyles.headlineSmall),
+            Text(_profileTr(lang, 'performance'), style: AppTextStyles.headlineSmall),
             const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(child: _AnalyticCard(
-                  label: 'Total Products',
+                  label: _profileTr(lang, 'totalProducts'),
                   value: '$totalProducts',
                   icon: Icons.inventory_2_outlined,
                   color: AppColors.info,
                 )),
                 const SizedBox(width: 12),
                 Expanded(child: _AnalyticCard(
-                  label: 'Total Orders',
+                  label: _profileTr(lang, 'totalOrders'),
                   value: '$totalOrders',
                   icon: Icons.shopping_bag_outlined,
                   color: AppColors.success,
                 )),
                 const SizedBox(width: 12),
                 Expanded(child: _AnalyticCard(
-                  label: 'Revenue',
+                  label: _profileTr(lang, 'revenue'),
                   value: AppFormatters.inrCompact(revenue),
                   icon: Icons.currency_rupee_rounded,
                   color: AppColors.accent,

@@ -382,10 +382,14 @@ class ApiClient {
     return InquiryModel.fromJson(response.data as Map<String, dynamic>);
   }
 
-  Future<void> respondToInquiry(String id, String message) async {
+  Future<void> respondToInquiry(String id, String message, {String? status}) async {
+    final map = <String, dynamic>{'response_message': message};
+    if (status != null && status.isNotEmpty) {
+      map['status'] = status;
+    }
     await _dio.post(
       ApiEndpoints.respondInquiry(id),
-      data: FormData.fromMap({'response_message': message}),
+      data: FormData.fromMap(map),
     );
   }
 
