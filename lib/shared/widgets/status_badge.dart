@@ -19,7 +19,9 @@ class StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (label, bg, text) = _getColors();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final (label, lightBg, text) = _getColors();
+    final bg = isDark ? text.withValues(alpha: 0.18) : lightBg;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(

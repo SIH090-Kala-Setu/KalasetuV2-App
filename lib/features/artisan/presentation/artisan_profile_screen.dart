@@ -422,10 +422,10 @@ void _showLanguagePicker(BuildContext context, WidgetRef ref) {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
+                      color: (isDark ? AppColors.accent : AppColors.primary).withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.language_rounded, color: AppColors.primary, size: 22),
+                    child: Icon(Icons.language_rounded, color: isDark ? AppColors.accent : AppColors.primary, size: 22),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -478,7 +478,7 @@ void _showLanguagePicker(BuildContext context, WidgetRef ref) {
                       leading: CircleAvatar(
                         radius: 20,
                         backgroundColor: isSelected
-                            ? AppColors.primary.withValues(alpha: 0.15)
+                            ? (isDark ? AppColors.accent : AppColors.primary).withValues(alpha: 0.15)
                             : (isDark ? Colors.white10 : Colors.grey.shade100),
                         child: Text(
                           item.$4.isNotEmpty ? item.$4.characters.first : '?',
@@ -486,7 +486,7 @@ void _showLanguagePicker(BuildContext context, WidgetRef ref) {
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: isSelected
-                                ? AppColors.primary
+                                ? (isDark ? AppColors.accent : AppColors.primary)
                                 : (isDark ? Colors.white70 : Colors.black87),
                           ),
                         ),
@@ -497,7 +497,7 @@ void _showLanguagePicker(BuildContext context, WidgetRef ref) {
                           fontSize: 16,
                           fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                           color: isSelected
-                              ? AppColors.primary
+                              ? (isDark ? AppColors.accent : AppColors.primary)
                               : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
                         ),
                       ),
@@ -509,7 +509,7 @@ void _showLanguagePicker(BuildContext context, WidgetRef ref) {
                         ),
                       ),
                       trailing: isSelected
-                          ? const Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 22)
+                          ? Icon(Icons.check_circle_rounded, color: isDark ? AppColors.accent : AppColors.primary, size: 22)
                           : null,
                       onTap: () async {
                         Navigator.pop(ctx);
@@ -523,7 +523,7 @@ void _showLanguagePicker(BuildContext context, WidgetRef ref) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text('Language updated to ${item.$2} (${item.$3})'),
-                              backgroundColor: AppColors.primary,
+                              backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
                               behavior: SnackBarBehavior.floating,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             ),
@@ -687,12 +687,15 @@ class _EditArtisanProfileSheetState extends ConsumerState<_EditArtisanProfileShe
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
+                      color: (isDark ? AppColors.accent : AppColors.primary).withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.photo_library_outlined, color: AppColors.primary),
+                    child: Icon(Icons.photo_library_outlined, color: isDark ? AppColors.accent : AppColors.primary),
                   ),
-                  title: const Text('Choose from Gallery / Files', style: TextStyle(fontWeight: FontWeight.w600)),
+                  title: Text(
+                    'Choose from Gallery / Files',
+                    style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+                  ),
                   onTap: () {
                     Navigator.pop(ctx);
                     _pickImage(ImageSource.gallery);
@@ -702,12 +705,15 @@ class _EditArtisanProfileSheetState extends ConsumerState<_EditArtisanProfileShe
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.accent.withValues(alpha: 0.1),
+                      color: AppColors.accent.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.camera_alt_outlined, color: AppColors.accent),
                   ),
-                  title: const Text('Take Photo with Camera', style: TextStyle(fontWeight: FontWeight.w600)),
+                  title: Text(
+                    'Take Photo with Camera',
+                    style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+                  ),
                   onTap: () {
                     Navigator.pop(ctx);
                     _pickImage(ImageSource.camera);
@@ -832,7 +838,7 @@ class _EditArtisanProfileSheetState extends ConsumerState<_EditArtisanProfileShe
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.palette_rounded, color: AppColors.primary, size: 24),
+                      Icon(Icons.palette_rounded, color: isDark ? AppColors.accent : AppColors.primary, size: 24),
                       const SizedBox(width: 10),
                       Text(
                         'Edit Artisan Profile',
@@ -876,8 +882,8 @@ class _EditArtisanProfileSheetState extends ConsumerState<_EditArtisanProfileShe
                             photoUrl: _photoUrlController.text.trim(),
                             name: _nameController.text.isNotEmpty ? _nameController.text : (widget.user?.fullName ?? ''),
                             radius: 46,
-                            backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-                            textColor: AppColors.primary,
+                            backgroundColor: (isDark ? AppColors.accent : AppColors.primary).withValues(alpha: 0.15),
+                            textColor: isDark ? AppColors.accent : AppColors.primary,
                             fontSize: 34,
                             border: Border.all(color: AppColors.accent, width: 2.5),
                           ),
@@ -943,18 +949,18 @@ class _EditArtisanProfileSheetState extends ConsumerState<_EditArtisanProfileShe
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.red.shade50,
+                    color: isDark ? const Color(0xFF7F1D1D).withValues(alpha: 0.25) : Colors.red.shade50,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.red.shade200),
+                    border: Border.all(color: isDark ? const Color(0xFF991B1B) : Colors.red.shade200),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.error_outline, size: 18, color: Colors.red.shade700),
+                      Icon(Icons.error_outline, size: 18, color: isDark ? const Color(0xFFFCA5A5) : Colors.red.shade700),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           _errorMessage!,
-                          style: TextStyle(fontSize: 12, color: Colors.red.shade700),
+                          style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFFCA5A5) : Colors.red.shade700),
                         ),
                       ),
                     ],
@@ -966,7 +972,7 @@ class _EditArtisanProfileSheetState extends ConsumerState<_EditArtisanProfileShe
                 controller: _nameController,
                 decoration: InputDecoration(
                   labelText: 'Artisan Full Name *',
-                  prefixIcon: const Icon(Icons.person_outline, color: AppColors.primary),
+                  prefixIcon: Icon(Icons.person_outline, color: isDark ? AppColors.accent : AppColors.primary),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 ),
@@ -977,7 +983,7 @@ class _EditArtisanProfileSheetState extends ConsumerState<_EditArtisanProfileShe
                 controller: _craftController,
                 decoration: InputDecoration(
                   labelText: 'Craft Specialization *',
-                  prefixIcon: const Icon(Icons.brush_outlined, color: AppColors.primary),
+                  prefixIcon: Icon(Icons.brush_outlined, color: isDark ? AppColors.accent : AppColors.primary),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   hintText: 'e.g. Banarasi Handloom Weaving',
@@ -1009,7 +1015,7 @@ class _EditArtisanProfileSheetState extends ConsumerState<_EditArtisanProfileShe
                       controller: _stateController,
                       decoration: InputDecoration(
                         labelText: 'State *',
-                        prefixIcon: const Icon(Icons.map_outlined, color: AppColors.primary),
+                        prefixIcon: Icon(Icons.map_outlined, color: isDark ? AppColors.accent : AppColors.primary),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                       ),
@@ -1022,7 +1028,7 @@ class _EditArtisanProfileSheetState extends ConsumerState<_EditArtisanProfileShe
                       controller: _districtController,
                       decoration: InputDecoration(
                         labelText: 'District *',
-                        prefixIcon: const Icon(Icons.location_city_outlined, color: AppColors.primary),
+                        prefixIcon: Icon(Icons.location_city_outlined, color: isDark ? AppColors.accent : AppColors.primary),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                       ),
@@ -1039,7 +1045,7 @@ class _EditArtisanProfileSheetState extends ConsumerState<_EditArtisanProfileShe
                       controller: _villageController,
                       decoration: InputDecoration(
                         labelText: 'Village / Cluster',
-                        prefixIcon: const Icon(Icons.home_work_outlined, color: AppColors.primary),
+                        prefixIcon: Icon(Icons.home_work_outlined, color: isDark ? AppColors.accent : AppColors.primary),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                       ),
@@ -1052,7 +1058,7 @@ class _EditArtisanProfileSheetState extends ConsumerState<_EditArtisanProfileShe
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(
                         labelText: 'Experience (Years)',
-                        prefixIcon: const Icon(Icons.history_edu_outlined, color: AppColors.primary),
+                        prefixIcon: Icon(Icons.history_edu_outlined, color: isDark ? AppColors.accent : AppColors.primary),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                       ),
@@ -1067,9 +1073,9 @@ class _EditArtisanProfileSheetState extends ConsumerState<_EditArtisanProfileShe
                 decoration: InputDecoration(
                   labelText: 'Artisan Story / Heritage Bio',
                   alignLabelWithHint: true,
-                  prefixIcon: const Padding(
-                    padding: EdgeInsets.only(bottom: 40),
-                    child: Icon(Icons.menu_book_rounded, color: AppColors.primary),
+                  prefixIcon: Padding(
+                    padding: const EdgeInsets.only(bottom: 40),
+                    child: Icon(Icons.menu_book_rounded, color: isDark ? AppColors.accent : AppColors.primary),
                   ),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -1083,16 +1089,16 @@ class _EditArtisanProfileSheetState extends ConsumerState<_EditArtisanProfileShe
                 child: ElevatedButton(
                   onPressed: _isSaving ? null : _save,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
+                    backgroundColor: isDark ? AppColors.accent : AppColors.primary,
+                    foregroundColor: isDark ? AppColors.primary : Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     elevation: 0,
                   ),
                   child: _isSaving
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 22,
                           height: 22,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          child: CircularProgressIndicator(color: isDark ? AppColors.primary : Colors.white, strokeWidth: 2),
                         )
                       : const Text(
                           'Save Profile Changes',
@@ -1240,10 +1246,10 @@ class _BankDetailsSheetState extends ConsumerState<_BankDetailsSheet> {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
         child: SafeArea(
           child: _isLoading
-              ? const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 50),
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 50),
                   child: Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
+                    child: CircularProgressIndicator(color: isDark ? AppColors.accent : AppColors.primary),
                   ),
                 )
               : Form(
@@ -1269,11 +1275,11 @@ class _BankDetailsSheetState extends ConsumerState<_BankDetailsSheet> {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.1),
+                                color: (isDark ? AppColors.accent : AppColors.primary).withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Icon(Icons.account_balance_outlined,
-                                  color: AppColors.primary, size: 24),
+                              child: Icon(Icons.account_balance_outlined,
+                                  color: isDark ? AppColors.accent : AppColors.primary, size: 24),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -1603,8 +1609,8 @@ Future<void> _downloadSalesReport(BuildContext context, WidgetRef ref) async {
                             _showCsvPreviewModal(context, reportData, fileName, isDark);
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
+                            backgroundColor: isDark ? AppColors.accent : AppColors.primary,
+                            foregroundColor: isDark ? AppColors.primary : Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
@@ -1716,14 +1722,14 @@ void _showCsvPreviewModal(BuildContext context, String csvData, String fileName,
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.08),
+                      color: (isDark ? AppColors.accent : AppColors.primary).withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('Listings', style: AppTextStyles.caption),
-                        Text('${rows.length}', style: AppTextStyles.titleMedium.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                        Text('${rows.length}', style: AppTextStyles.titleMedium.copyWith(color: isDark ? AppColors.accent : AppColors.primary, fontWeight: FontWeight.bold)),
                       ],
                     ),
                   ),
@@ -1909,11 +1915,12 @@ class _SettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ListTile(
-      leading: Icon(icon, color: AppColors.primary),
+      leading: Icon(icon, color: isDark ? AppColors.accent : AppColors.primary),
       title: Text(title),
       subtitle: subtitle != null ? Text(subtitle!) : null,
-      trailing: trailing ?? (onTap != null ? const Icon(Icons.arrow_forward_ios_rounded, size: 16) : null),
+      trailing: trailing ?? (onTap != null ? Icon(Icons.arrow_forward_ios_rounded, size: 16, color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary) : null),
       onTap: onTap,
       contentPadding: EdgeInsets.zero,
     );

@@ -141,14 +141,14 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFD1FAE5),
+                            color: isDark ? const Color(0xFF064E3B) : const Color(0xFFD1FAE5),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.shield_outlined, size: 14, color: Color(0xFF047857)),
-                              SizedBox(width: 4),
+                              Icon(Icons.shield_outlined, size: 14, color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF047857)),
+                              const SizedBox(width: 4),
                               Text(
                                 'GI\nTag',
                                 textAlign: TextAlign.center,
@@ -156,7 +156,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                   fontSize: 11,
                                   height: 1.1,
                                   fontWeight: FontWeight.w800,
-                                  color: Color(0xFF047857),
+                                  color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF047857),
                                 ),
                               ),
                             ],
@@ -234,7 +234,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                           photoUrl: null,
                           name: artisanName,
                           radius: 24,
-                          backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+                          backgroundColor: (isDark ? AppColors.accent : AppColors.primary).withValues(alpha: 0.15),
+                          textColor: isDark ? AppColors.accent : AppColors.primary,
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -269,15 +270,15 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFD1FAE5),
+                            color: isDark ? const Color(0xFF064E3B) : const Color(0xFFD1FAE5),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Text(
+                          child: Text(
                             'MoSJE Verified',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFF047857),
+                              color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF047857),
                             ),
                           ),
                         ),
@@ -435,7 +436,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                             AppAvatar(
                               name: artisanName,
                               radius: 24,
-                              backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+                              backgroundColor: (isDark ? AppColors.accent : AppColors.primary).withValues(alpha: 0.15),
+                              textColor: isDark ? AppColors.accent : AppColors.primary,
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -482,16 +484,16 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Row(
+                            Row(
                               children: [
-                                Icon(Icons.shield_outlined, size: 14, color: Color(0xFF047857)),
-                                SizedBox(width: 4),
+                                Icon(Icons.shield_outlined, size: 14, color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF047857)),
+                                const SizedBox(width: 4),
                                 Text(
                                   'MoSJE Registered Artisan',
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
-                                    color: Color(0xFF047857),
+                                    color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF047857),
                                   ),
                                 ),
                               ],
@@ -505,9 +507,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                               },
                               icon: Text(
                                 'View Portfolio',
-                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: textPrimary),
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: isDark ? AppColors.accent : textPrimary),
                               ),
-                              label: Icon(Icons.arrow_forward_rounded, size: 14, color: textPrimary),
+                              label: Icon(Icons.arrow_forward_rounded, size: 14, color: isDark ? AppColors.accent : textPrimary),
                               style: TextButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                 minimumSize: Size.zero,
@@ -608,10 +610,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                         }
                       },
                 icon: _isSendingRfq
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 18,
                         height: 18,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        child: CircularProgressIndicator(color: isDark ? AppColors.primary : Colors.white, strokeWidth: 2),
                       )
                     : const Icon(Icons.send_rounded, size: 20),
                 label: Text(
@@ -619,8 +621,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFF5A623),
-                  foregroundColor: Colors.white,
+                  backgroundColor: isDark ? AppColors.accent : const Color(0xFFF5A623),
+                  foregroundColor: isDark ? AppColors.primary : Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),

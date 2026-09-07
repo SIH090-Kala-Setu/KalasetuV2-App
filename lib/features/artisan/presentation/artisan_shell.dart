@@ -68,7 +68,7 @@ class _ArtisanShellState extends ConsumerState<ArtisanShell> {
           ),
           child: NavigationBar(
             backgroundColor: navBg,
-            indicatorColor: AppColors.primary.withValues(alpha: 0.15),
+            indicatorColor: (isDark ? AppColors.accent : AppColors.primary).withValues(alpha: 0.2),
             selectedIndex: widget.navigationShell.currentIndex,
             height: 64,
             onDestinationSelected: (i) => widget.navigationShell.goBranch(
@@ -78,22 +78,22 @@ class _ArtisanShellState extends ConsumerState<ArtisanShell> {
             destinations: [
               NavigationDestination(
                 icon: Icon(Icons.home_outlined, color: isDark ? AppColors.darkTextSecondary : const Color(0xFF8A94A6)),
-                selectedIcon: const Icon(Icons.home_rounded, color: AppColors.primary),
+                selectedIcon: Icon(Icons.home_rounded, color: isDark ? AppColors.accent : AppColors.primary),
                 label: 'Home',
               ),
               NavigationDestination(
                 icon: Icon(Icons.inventory_2_outlined, color: isDark ? AppColors.darkTextSecondary : const Color(0xFF8A94A6)),
-                selectedIcon: const Icon(Icons.inventory_2_rounded, color: AppColors.primary),
+                selectedIcon: Icon(Icons.inventory_2_rounded, color: isDark ? AppColors.accent : AppColors.primary),
                 label: 'Catalogue',
               ),
               NavigationDestination(
                 icon: Icon(Icons.chat_bubble_outline_rounded, color: isDark ? AppColors.darkTextSecondary : const Color(0xFF8A94A6)),
-                selectedIcon: const Icon(Icons.chat_bubble_rounded, color: AppColors.primary),
+                selectedIcon: Icon(Icons.chat_bubble_rounded, color: isDark ? AppColors.accent : AppColors.primary),
                 label: 'Inquiries',
               ),
               NavigationDestination(
                 icon: Icon(Icons.person_outline_rounded, color: isDark ? AppColors.darkTextSecondary : const Color(0xFF8A94A6)),
-                selectedIcon: const Icon(Icons.person_rounded, color: AppColors.primary),
+                selectedIcon: Icon(Icons.person_rounded, color: isDark ? AppColors.accent : AppColors.primary),
                 label: 'Profile',
               ),
             ],

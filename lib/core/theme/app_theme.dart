@@ -163,7 +163,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          borderSide: BorderSide(color: isDark ? AppColors.accent : AppColors.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -178,7 +178,7 @@ class AppTheme {
         ),
         labelStyle: AppTextStyles.bodyMedium.copyWith(color: textSecondary),
         floatingLabelStyle: AppTextStyles.labelMedium.copyWith(
-          color: AppColors.primary,
+          color: isDark ? AppColors.accent : AppColors.primary,
         ),
         prefixIconColor: textSecondary,
         suffixIconColor: textSecondary,
@@ -201,11 +201,11 @@ class AppTheme {
       // ── Navigation Bar ──────────────────────────────────────
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: surface,
-        indicatorColor: AppColors.primary.withValues(alpha: 0.15),
+        indicatorColor: (isDark ? AppColors.accent : AppColors.primary).withValues(alpha: 0.2),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
             return AppTextStyles.labelSmall.copyWith(
-              color: AppColors.primary,
+              color: isDark ? AppColors.accent : AppColors.primary,
               fontWeight: FontWeight.w600,
             );
           }
@@ -213,7 +213,7 @@ class AppTheme {
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const IconThemeData(color: AppColors.primary, size: 24);
+            return IconThemeData(color: isDark ? AppColors.accent : AppColors.primary, size: 24);
           }
           return IconThemeData(color: textSecondary, size: 24);
         }),
@@ -226,7 +226,7 @@ class AppTheme {
       // ── Chip ────────────────────────────────────────────────
       chipTheme: ChipThemeData(
         backgroundColor: isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant,
-        selectedColor: AppColors.primary.withValues(alpha: 0.15),
+        selectedColor: (isDark ? AppColors.accent : AppColors.primary).withValues(alpha: 0.18),
         labelStyle: AppTextStyles.chipLabel.copyWith(color: textPrimary),
         side: BorderSide(color: border),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -283,10 +283,10 @@ class AppTheme {
       ),
 
       // ── Progress Indicator ──────────────────────────────────
-      progressIndicatorTheme: const ProgressIndicatorThemeData(
+      progressIndicatorTheme: ProgressIndicatorThemeData(
         color: AppColors.accent,
         linearMinHeight: 6,
-        linearTrackColor: AppColors.lightSurfaceVariant,
+        linearTrackColor: isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant,
       ),
 
       // ── Snack Bar ───────────────────────────────────────────

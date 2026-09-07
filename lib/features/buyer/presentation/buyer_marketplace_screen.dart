@@ -333,8 +333,8 @@ class _BuyerMarketplaceScreenState extends ConsumerState<BuyerMarketplaceScreen>
                         },
                       );
                     },
-                    loading: () => const Center(
-                      child: CircularProgressIndicator(color: AppColors.primary),
+                    loading: () => Center(
+                      child: CircularProgressIndicator(color: isDark ? AppColors.accent : AppColors.primary),
                     ),
                     error: (err, stack) {
                       return Column(
@@ -343,22 +343,34 @@ class _BuyerMarketplaceScreenState extends ConsumerState<BuyerMarketplaceScreen>
                             margin: const EdgeInsets.only(bottom: 10),
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFEF3C7),
+                              color: isDark ? const Color(0xFF78350F).withValues(alpha: 0.35) : const Color(0xFFFEF3C7),
                               borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: isDark ? const Color(0xFFB45309).withValues(alpha: 0.5) : const Color(0xFFFDE68A)),
                             ),
                             child: Row(
                               children: [
                                 const Icon(Icons.cloud_off_rounded, size: 16, color: Color(0xFFD97706)),
                                 const SizedBox(width: 8),
-                                const Expanded(
+                                Expanded(
                                   child: Text(
                                     'Offline demo mode — showing local catalog',
-                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF92400E)),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark ? const Color(0xFFFDE68A) : const Color(0xFF92400E),
+                                    ),
                                   ),
                                 ),
                                 TextButton(
                                   onPressed: () => ref.invalidate(marketplaceProductsProvider),
-                                  child: const Text('Retry', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                  child: Text(
+                                    'Retry',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark ? AppColors.accent : AppColors.primary,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),

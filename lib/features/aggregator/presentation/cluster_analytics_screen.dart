@@ -49,7 +49,7 @@ class ClusterAnalyticsScreen extends ConsumerWidget {
                 ('Total Artisans', '${data['total_artisans'] ?? 0}', AppColors.info),
                 ('Verified Artisans', '${data['verified_artisans'] ?? 0}', AppColors.success),
                 ('Active Products', '${data['total_active_listings'] ?? data['active_products'] ?? 0}', AppColors.accent),
-                ('Total Inquiries', '${data['total_pending_inquiries'] ?? data['total_orders'] ?? 0}', AppColors.aggregatorColor),
+                ('Total Inquiries', '${data['total_pending_inquiries'] ?? data['total_orders'] ?? 0}', isDark ? const Color(0xFF60A5FA) : AppColors.aggregatorColor),
               ].map((item) => Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: Container(

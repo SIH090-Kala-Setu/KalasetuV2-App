@@ -67,8 +67,12 @@ class AppAvatar extends StatelessWidget {
         ? name!.trim()[0].toUpperCase()
         : '?';
 
-    final bg = backgroundColor ?? AppColors.primary.withValues(alpha: 0.15);
-    final fg = textColor ?? AppColors.primary;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = backgroundColor ??
+        (isDark
+            ? AppColors.accent.withValues(alpha: 0.2)
+            : AppColors.primary.withValues(alpha: 0.15));
+    final fg = textColor ?? (isDark ? AppColors.accent : AppColors.primary);
     final fs = fontSize ?? (radius * 0.75);
 
     Widget avatar = CircleAvatar(

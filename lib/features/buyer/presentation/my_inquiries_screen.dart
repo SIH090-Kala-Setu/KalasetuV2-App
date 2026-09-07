@@ -85,12 +85,12 @@ class MyInquiriesScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'My Inquiries & Orders',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.primary,
+                  color: AppColors.textPrimary(context),
                   letterSpacing: -0.5,
                 ),
               ),
@@ -135,7 +135,7 @@ class MyInquiriesScreen extends ConsumerWidget {
                         },
                       );
                     },
-                    loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+                    loading: () => Center(child: CircularProgressIndicator(color: AppColors.adaptivePrimary(context))),
                     error: (err, stack) => ListView.separated(
                       physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
                       padding: const EdgeInsets.only(bottom: 24),
@@ -162,6 +162,13 @@ class MyInquiriesScreen extends ConsumerWidget {
   }
 
   void _showInquiryDetailSheet(BuildContext context, InquiryModel inquiry) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final sheetBg = isDark ? AppColors.darkSurface : Colors.white;
+    final cardBg = isDark ? AppColors.darkBackground : const Color(0xFFF8FAFC);
+    final cardBorder = isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0);
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.primary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B);
+
     final stage = _mapStatusToStage(inquiry.status);
     final s = inquiry.status.toLowerCase();
     final isAccepted = s.contains('accept') || s.contains('final') || s.contains('complet') || s.contains('dispatch');
@@ -171,7 +178,7 @@ class MyInquiriesScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: sheetBg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -190,7 +197,7 @@ class MyInquiriesScreen extends ConsumerWidget {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: 0.3),
+                  color: isDark ? AppColors.darkBorder : Colors.grey.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -205,7 +212,7 @@ class MyInquiriesScreen extends ConsumerWidget {
                       Text(
                         'Inquiry Details',
                         style: AppTextStyles.headlineSmall.copyWith(
-                          color: AppColors.primary,
+                          color: textPrimary,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -213,7 +220,7 @@ class MyInquiriesScreen extends ConsumerWidget {
                         inquiry.createdAt != null
                             ? 'Submitted on ${inquiry.createdAt!.day}/${inquiry.createdAt!.month}/${inquiry.createdAt!.year}'
                             : 'Inquiry Reference',
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                        style: TextStyle(fontSize: 12, color: textSecondary),
                       ),
                     ],
                   ),
@@ -221,11 +228,17 @@ class MyInquiriesScreen extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: isAccepted
-                        ? const Color(0xFFDCFCE7)
-                        : isDeclined
-                            ? const Color(0xFFFEE2E2)
-                            : const Color(0xFFFEF3C7),
+                    color: isDark
+                        ? (isAccepted
+                            ? const Color(0xFF15803D).withValues(alpha: 0.2)
+                            : isDeclined
+                                ? const Color(0xFFB91C1C).withValues(alpha: 0.2)
+                                : const Color(0xFFD97706).withValues(alpha: 0.2))
+                        : (isAccepted
+                            ? const Color(0xFFDCFCE7)
+                            : isDeclined
+                                ? const Color(0xFFFEE2E2)
+                                : const Color(0xFFFEF3C7)),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -233,11 +246,17 @@ class MyInquiriesScreen extends ConsumerWidget {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: isAccepted
-                          ? const Color(0xFF15803D)
-                          : isDeclined
-                              ? const Color(0xFFB91C1C)
-                              : const Color(0xFFD97706),
+                      color: isDark
+                          ? (isAccepted
+                              ? const Color(0xFF4ADE80)
+                              : isDeclined
+                                  ? const Color(0xFFF87171)
+                                  : const Color(0xFFFBBF24))
+                          : (isAccepted
+                              ? const Color(0xFF15803D)
+                              : isDeclined
+                                  ? const Color(0xFFB91C1C)
+                                  : const Color(0xFFD97706)),
                     ),
                   ),
                 ),
@@ -249,9 +268,9 @@ class MyInquiriesScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
+                color: cardBg,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: cardBorder),
               ),
               child: Row(
                 children: [
@@ -259,10 +278,10 @@ class MyInquiriesScreen extends ConsumerWidget {
                     width: 52,
                     height: 52,
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
+                      color: isDark ? AppColors.darkSurfaceVariant : AppColors.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.inventory_2_outlined, color: AppColors.primary, size: 26),
+                    child: Icon(Icons.inventory_2_outlined, color: isDark ? AppColors.accent : AppColors.primary, size: 26),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -271,14 +290,14 @@ class MyInquiriesScreen extends ConsumerWidget {
                       children: [
                         Text(
                           inquiry.productTitle.isNotEmpty ? inquiry.productTitle : 'Artisan Craft Product',
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.primary),
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: textPrimary),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 4),
                         Text(
                           'Quantity: ${inquiry.quantity} pcs',
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textSecondary),
                         ),
                         if (inquiry.unitPrice != null && inquiry.unitPrice! > 0) ...[
                           const SizedBox(height: 2),
@@ -299,16 +318,16 @@ class MyInquiriesScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: sheetBg,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: cardBorder),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Order Stage Progress',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF1E293B)),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: textPrimary),
                   ),
                   const SizedBox(height: 14),
                   _ProgressStepperRow(currentStage: stage),
@@ -319,49 +338,61 @@ class MyInquiriesScreen extends ConsumerWidget {
 
             // Buyer's Note
             if (inquiry.note != null && inquiry.note!.trim().isNotEmpty) ...[
-              const Text(
+              Text(
                 'Your Request Note',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF1E293B)),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: textPrimary),
               ),
               const SizedBox(height: 6),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
+                  color: isDark ? AppColors.darkBackground : const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFCBD5E1)),
+                  border: Border.all(color: cardBorder),
                 ),
                 child: Text(
                   inquiry.note!.trim(),
-                  style: const TextStyle(fontSize: 13, color: Color(0xFF334155), height: 1.4),
+                  style: TextStyle(fontSize: 13, color: textSecondary, height: 1.4),
                 ),
               ),
               const SizedBox(height: 18),
             ],
 
             // Artisan Response
-            const Text(
+            Text(
               'Artisan Status & Response',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF1E293B)),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: textPrimary),
             ),
             const SizedBox(height: 6),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isAccepted
-                    ? const Color(0xFFF0FDF4)
-                    : isDeclined
-                        ? const Color(0xFFFEF2F2)
-                        : const Color(0xFFFEF3C7),
+                color: isDark
+                    ? (isAccepted
+                        ? const Color(0xFF15803D).withValues(alpha: 0.15)
+                        : isDeclined
+                            ? const Color(0xFFB91C1C).withValues(alpha: 0.15)
+                            : const Color(0xFFD97706).withValues(alpha: 0.15))
+                    : (isAccepted
+                        ? const Color(0xFFF0FDF4)
+                        : isDeclined
+                            ? const Color(0xFFFEF2F2)
+                            : const Color(0xFFFEF3C7)),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isAccepted
-                      ? const Color(0xFF86EFAC)
-                      : isDeclined
-                          ? const Color(0xFFFCA5A5)
-                          : const Color(0xFFFCD34D),
+                  color: isDark
+                      ? (isAccepted
+                          ? const Color(0xFF15803D)
+                          : isDeclined
+                              ? const Color(0xFF991B1B)
+                              : const Color(0xFFB45309))
+                      : (isAccepted
+                          ? const Color(0xFF86EFAC)
+                          : isDeclined
+                              ? const Color(0xFFFCA5A5)
+                              : const Color(0xFFFCD34D)),
                 ),
               ),
               child: Column(
@@ -375,11 +406,17 @@ class MyInquiriesScreen extends ConsumerWidget {
                             : isDeclined
                                 ? Icons.cancel_rounded
                                 : Icons.hourglass_top_rounded,
-                        color: isAccepted
-                            ? const Color(0xFF15803D)
-                            : isDeclined
-                                ? const Color(0xFFDC2626)
-                                : const Color(0xFFD97706),
+                        color: isDark
+                            ? (isAccepted
+                                ? const Color(0xFF4ADE80)
+                                : isDeclined
+                                    ? const Color(0xFFF87171)
+                                    : const Color(0xFFFBBF24))
+                            : (isAccepted
+                                ? const Color(0xFF15803D)
+                                : isDeclined
+                                    ? const Color(0xFFDC2626)
+                                    : const Color(0xFFD97706)),
                         size: 20,
                       ),
                       const SizedBox(width: 8),
@@ -392,11 +429,17 @@ class MyInquiriesScreen extends ConsumerWidget {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
-                          color: isAccepted
-                              ? const Color(0xFF15803D)
-                              : isDeclined
-                                  ? const Color(0xFFDC2626)
-                                  : const Color(0xFF92400E),
+                          color: isDark
+                              ? (isAccepted
+                                  ? const Color(0xFF86EFAC)
+                                  : isDeclined
+                                      ? const Color(0xFFFCA5A5)
+                                      : const Color(0xFFFCD34D))
+                              : (isAccepted
+                                  ? const Color(0xFF15803D)
+                                  : isDeclined
+                                      ? const Color(0xFFDC2626)
+                                      : const Color(0xFF92400E)),
                         ),
                       ),
                     ],
@@ -407,19 +450,28 @@ class MyInquiriesScreen extends ConsumerWidget {
                       inquiry.responseMessage!,
                       style: TextStyle(
                         fontSize: 13,
-                        color: isAccepted
-                            ? const Color(0xFF166534)
-                            : isDeclined
-                                ? const Color(0xFF991B1B)
-                                : const Color(0xFF78350F),
+                        color: isDark
+                            ? (isAccepted
+                                ? const Color(0xFFBBF7D0)
+                                : isDeclined
+                                    ? const Color(0xFFFECACA)
+                                    : const Color(0xFFFDE68A))
+                            : (isAccepted
+                                ? const Color(0xFF166534)
+                                : isDeclined
+                                    ? const Color(0xFF991B1B)
+                                    : const Color(0xFF78350F)),
                         height: 1.4,
                       ),
                     ),
                   ] else if (isPending) ...[
                     const SizedBox(height: 6),
-                    const Text(
+                    Text(
                       'The artisan has received your wholesale requirement and is preparing quotation / availability details.',
-                      style: TextStyle(fontSize: 12.5, color: Color(0xFF78350F)),
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: isDark ? const Color(0xFFFCD34D) : const Color(0xFF78350F),
+                      ),
                     ),
                   ],
                 ],
@@ -440,8 +492,8 @@ class MyInquiriesScreen extends ConsumerWidget {
                         context.push(RouteNames.productDetail(inquiry.productId));
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
+                        backgroundColor: isDark ? AppColors.accent : AppColors.primary,
+                        foregroundColor: isDark ? AppColors.darkBackground : Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
@@ -454,9 +506,10 @@ class MyInquiriesScreen extends ConsumerWidget {
                     onPressed: () => Navigator.pop(ctx),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: BorderSide(color: cardBorder),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text('Close'),
+                    child: Text('Close', style: TextStyle(color: textPrimary)),
                   ),
                 ),
               ],
@@ -469,6 +522,13 @@ class MyInquiriesScreen extends ConsumerWidget {
   }
 
   void _showMockInquiryDetailSheet(BuildContext context, Map<String, dynamic> order) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final sheetBg = isDark ? AppColors.darkSurface : Colors.white;
+    final cardBg = isDark ? AppColors.darkBackground : const Color(0xFFF8FAFC);
+    final cardBorder = isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0);
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.primary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B);
+
     final title = order['title'] as String;
     final client = order['client'] as String;
     final stage = order['stage'] as int;
@@ -478,7 +538,7 @@ class MyInquiriesScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: sheetBg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -494,7 +554,7 @@ class MyInquiriesScreen extends ConsumerWidget {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: 0.3),
+                  color: isDark ? AppColors.darkBorder : Colors.grey.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -505,47 +565,53 @@ class MyInquiriesScreen extends ConsumerWidget {
                 Expanded(
                   child: Text(
                     title,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.primary),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: textPrimary),
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close),
+                  icon: Icon(Icons.close, color: textSecondary),
                   onPressed: () => Navigator.pop(ctx),
                 ),
               ],
             ),
             const SizedBox(height: 4),
-            Text(client, style: const TextStyle(fontSize: 13, color: Color(0xFF64748B))),
+            Text(client, style: TextStyle(fontSize: 13, color: textSecondary)),
             const SizedBox(height: 18),
             _ProgressStepperRow(currentStage: stage),
             const SizedBox(height: 18),
             if (notes.isNotEmpty) ...[
-              const Text('Inquiry Notes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              Text('Inquiry Notes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textPrimary)),
               const SizedBox(height: 4),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
+                  color: cardBg,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  border: Border.all(color: cardBorder),
                 ),
-                child: Text(notes, style: const TextStyle(fontSize: 13, color: Color(0xFF475569))),
+                child: Text(notes, style: TextStyle(fontSize: 13, color: textSecondary)),
               ),
               const SizedBox(height: 12),
             ],
             if (response != null && response.isNotEmpty) ...[
-              const Text('Artisan Response', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              Text('Artisan Response', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textPrimary)),
               const SizedBox(height: 4),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0FDF4),
+                  color: isDark ? const Color(0xFF15803D).withValues(alpha: 0.15) : const Color(0xFFF0FDF4),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFF86EFAC)),
+                  border: Border.all(color: isDark ? const Color(0xFF15803D) : const Color(0xFF86EFAC)),
                 ),
-                child: Text(response, style: const TextStyle(fontSize: 13, color: Color(0xFF15803D))),
+                child: Text(
+                  response,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: isDark ? const Color(0xFF86EFAC) : const Color(0xFF15803D),
+                  ),
+                ),
               ),
               const SizedBox(height: 12),
             ],
@@ -554,8 +620,8 @@ class MyInquiriesScreen extends ConsumerWidget {
               child: ElevatedButton(
                 onPressed: () => Navigator.pop(ctx),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
+                  backgroundColor: isDark ? AppColors.accent : AppColors.primary,
+                  foregroundColor: isDark ? AppColors.darkBackground : Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
@@ -582,6 +648,12 @@ class _ProgressStepperRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final inactiveLine = isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0);
+    final inactiveCircle = isDark ? AppColors.darkSurfaceVariant : const Color(0xFFF1F5F9);
+    final inactiveText = isDark ? AppColors.darkTextSecondary : const Color(0xFF94A3B8);
+    final activeColor = isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D);
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: List.generate(4, (index) {
@@ -599,8 +671,8 @@ class _ProgressStepperRow extends StatelessWidget {
                       child: Container(
                         height: 2.5,
                         color: currentStage >= stepNum
-                            ? const Color(0xFF15803D)
-                            : const Color(0xFFE2E8F0),
+                            ? activeColor
+                            : inactiveLine,
                       ),
                     )
                   else
@@ -611,20 +683,20 @@ class _ProgressStepperRow extends StatelessWidget {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: (isPassed || isCurrent)
-                          ? const Color(0xFF15803D)
-                          : const Color(0xFFF1F5F9),
+                          ? activeColor
+                          : inactiveCircle,
                     ),
                     child: Center(
                       child: isPassed
-                          ? const Icon(Icons.check_rounded, color: Colors.white, size: 14)
+                          ? Icon(Icons.check_rounded, color: isDark ? AppColors.darkBackground : Colors.white, size: 14)
                           : Text(
                               '$stepNum',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w800,
                                 color: isCurrent
-                                    ? Colors.white
-                                    : const Color(0xFF94A3B8),
+                                    ? (isDark ? AppColors.darkBackground : Colors.white)
+                                    : inactiveText,
                               ),
                             ),
                     ),
@@ -634,8 +706,8 @@ class _ProgressStepperRow extends StatelessWidget {
                       child: Container(
                         height: 2.5,
                         color: currentStage > stepNum
-                            ? const Color(0xFF15803D)
-                            : const Color(0xFFE2E8F0),
+                            ? activeColor
+                            : inactiveLine,
                       ),
                     )
                   else
@@ -650,8 +722,8 @@ class _ProgressStepperRow extends StatelessWidget {
                   fontSize: 9.5,
                   fontWeight: (isPassed || isCurrent) ? FontWeight.w700 : FontWeight.w500,
                   color: (isPassed || isCurrent)
-                      ? const Color(0xFF15803D)
-                      : const Color(0xFF94A3B8),
+                      ? activeColor
+                      : inactiveText,
                 ),
               ),
             ],
@@ -677,8 +749,16 @@ class _OrderStepperCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? AppColors.darkSurface : Colors.white;
+    final borderColor = isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0);
+    final iconBoxBg = isDark ? AppColors.darkSurfaceVariant : const Color(0xFFF1F5F9);
+    final iconColor = isDark ? AppColors.accent : AppColors.primary;
+    final titleColor = isDark ? AppColors.darkTextPrimary : AppColors.primary;
+    final clientColor = isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B);
+
     return Material(
-      color: Colors.white,
+      color: cardBg,
       borderRadius: BorderRadius.circular(18),
       elevation: 0,
       child: InkWell(
@@ -688,9 +768,10 @@ class _OrderStepperCard extends StatelessWidget {
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-            boxShadow: const [
-              BoxShadow(color: Color(0x04000000), blurRadius: 8, offset: Offset(0, 2)),
+            border: Border.all(color: borderColor),
+            boxShadow: [
+              if (!isDark)
+                const BoxShadow(color: Color(0x04000000), blurRadius: 8, offset: Offset(0, 2)),
             ],
           ),
           child: Column(
@@ -703,11 +784,11 @@ class _OrderStepperCard extends StatelessWidget {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
+                      color: iconBoxBg,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Center(
-                      child: Icon(Icons.inventory_2_outlined, color: AppColors.primary, size: 22),
+                    child: Center(
+                      child: Icon(Icons.inventory_2_outlined, color: iconColor, size: 22),
                     ),
                   ),
                   const SizedBox(width: 14),
@@ -717,10 +798,10 @@ class _OrderStepperCard extends StatelessWidget {
                       children: [
                         Text(
                           title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.primary,
+                            color: titleColor,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -728,19 +809,19 @@ class _OrderStepperCard extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           client,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
-                            color: Color(0xFF64748B),
+                            color: clientColor,
                           ),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(width: 8),
-                  const Icon(
+                  Icon(
                     Icons.chevron_right_rounded,
-                    color: Color(0xFF94A3B8),
+                    color: isDark ? AppColors.darkTextSecondary : const Color(0xFF94A3B8),
                     size: 22,
                   ),
                 ],
