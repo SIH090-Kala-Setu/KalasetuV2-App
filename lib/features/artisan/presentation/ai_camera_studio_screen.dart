@@ -123,72 +123,78 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
         if (didPop) return;
         await _handleStudioBack();
       },
-      child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 12),
-                // Top Bar: 'X' + Progress bar + Step counter
-                Row(
+      child: Builder(
+        builder: (context) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          return Scaffold(
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            body: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded, color: AppColors.primary, size: 24),
-                      onPressed: _handleStudioBack,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Row(
-                      children: List.generate(3, (index) {
-                        final filled = _step > index;
-                        return Expanded(
-                          child: Container(
-                            height: 4,
-                            margin: EdgeInsets.only(right: index < 2 ? 6 : 0),
-                            decoration: BoxDecoration(
-                              color: filled ? AppColors.accent : const Color(0xFFE2E8F0),
-                              borderRadius: BorderRadius.circular(2),
-                            ),
+                    const SizedBox(height: 12),
+                    // Top Bar: 'X' + Progress bar + Step counter
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.close_rounded, color: isDark ? AppColors.darkTextPrimary : AppColors.primary, size: 24),
+                          onPressed: _handleStudioBack,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Row(
+                            children: List.generate(3, (index) {
+                              final filled = _step > index;
+                              return Expanded(
+                                child: Container(
+                                  height: 4,
+                                  margin: EdgeInsets.only(right: index < 2 ? 6 : 0),
+                                  decoration: BoxDecoration(
+                                    color: filled ? AppColors.accent : (isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0)),
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                ),
+                              );
+                            }),
                           ),
-                        );
-                      }),
+                        ),
+                        const SizedBox(width: 14),
+                        Text(
+                          '$_step/3',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? AppColors.darkTextSecondary : const Color(0xFF8A94A6),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(width: 14),
-                  Text(
-                    '$_step/3',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF8A94A6),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
+                    const SizedBox(height: 16),
 
-              Expanded(
-                child: switch (_step) {
-                  1 => _buildCameraStep(),
-                  2 => _buildVoiceStep(),
-                  _ => _buildPricingStep(),
-                },
+                    Expanded(
+                      child: switch (_step) {
+                        1 => _buildCameraStep(),
+                        2 => _buildVoiceStep(),
+                        _ => _buildPricingStep(),
+                      },
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
-        ),
-      ),
+            ),
+          );
+        },
       ),
     );
   }
 
   // ── Step 1: AI Camera Studio ─────────────────────────────────────
   Widget _buildCameraStep() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final displayBytes = (_showEnhanced && _enhancedImageBytes != null)
         ? _enhancedImageBytes
         : _capturedImageBytes;
@@ -200,7 +206,7 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -209,14 +215,14 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.primary,
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
                       letterSpacing: -0.5,
                     ),
                   ),
-                  SizedBox(height: 2),
+                  const SizedBox(height: 2),
                   Text(
                     'AI studio lighting & background enhancement',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF8A94A6)),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: isDark ? AppColors.darkTextSecondary : const Color(0xFF8A94A6)),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
@@ -225,8 +231,8 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
             if (_capturedImageBytes == null)
               TextButton.icon(
                 onPressed: _goToVoiceStep,
-                icon: const Icon(Icons.fast_forward_rounded, size: 16, color: AppColors.primary),
-                label: const Text('Skip', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 13)),
+                icon: Icon(Icons.fast_forward_rounded, size: 16, color: isDark ? AppColors.accent : AppColors.primary),
+                label: Text('Skip', style: TextStyle(color: isDark ? AppColors.accent : AppColors.primary, fontWeight: FontWeight.w700, fontSize: 13)),
               ),
           ],
         ),
@@ -237,13 +243,13 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
           child: Container(
             width: double.infinity,
             decoration: BoxDecoration(
-              color: displayBytes != null ? Colors.white : AppColors.primary,
+              color: displayBytes != null ? (isDark ? AppColors.darkSurface : Colors.white) : AppColors.primary,
               borderRadius: BorderRadius.circular(24),
-              border: displayBytes != null ? Border.all(color: const Color(0xFFE2E8F0), width: 1.5) : null,
+              border: displayBytes != null ? Border.all(color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0), width: 1.5) : null,
               boxShadow: [
                 BoxShadow(
                   color: displayBytes != null
-                      ? Colors.black.withValues(alpha: 0.08)
+                      ? (isDark ? Colors.black.withValues(alpha: 0.25) : Colors.black.withValues(alpha: 0.08))
                       : AppColors.primary.withValues(alpha: 0.25),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
@@ -255,11 +261,11 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // 1. Captured or enhanced image preview on pure white studio canvas
+                  // 1. Captured or enhanced image preview on studio canvas
                   if (displayBytes != null)
                     Positioned.fill(
                       child: Container(
-                        color: Colors.white,
+                        color: isDark ? AppColors.darkSurface : Colors.white,
                         padding: const EdgeInsets.all(12),
                         child: Image.memory(displayBytes, fit: BoxFit.contain),
                       ),
@@ -525,18 +531,18 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                   height: 50,
                   child: OutlinedButton.icon(
                     onPressed: _discardAndRetakePhoto,
-                    icon: const Icon(Icons.replay_rounded, size: 18, color: Color(0xFFDC2626)),
-                    label: const Text(
+                    icon: Icon(Icons.replay_rounded, size: 18, color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626)),
+                    label: Text(
                       'Retry',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFFDC2626),
+                        color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626),
                       ),
                     ),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFFFCA5A5), width: 1.5),
-                      backgroundColor: const Color(0xFFFEF2F2),
+                      side: BorderSide(color: isDark ? const Color(0xFFB91C1C) : const Color(0xFFFCA5A5), width: 1.5),
+                      backgroundColor: isDark ? const Color(0xFFB91C1C).withValues(alpha: 0.15) : const Color(0xFFFEF2F2),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
                   ),
@@ -556,7 +562,7 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.accent,
-                      foregroundColor: AppColors.primary,
+                      foregroundColor: AppColors.darkBackground,
                       elevation: 0,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
@@ -567,13 +573,13 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
           ),
         ] else ...[
           const SizedBox(height: 8),
-          const Center(
+          Center(
             child: Text(
               'Tap shutter to capture or pick craft photo from gallery',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF8A94A6),
+                color: isDark ? AppColors.darkTextSecondary : const Color(0xFF8A94A6),
               ),
             ),
           ),
@@ -585,24 +591,33 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
 
   // ── Step 2: Voice-to-Catalog ─────────────────────────────────────
   Widget _buildVoiceStep() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? AppColors.darkSurface : Colors.white;
+    final cardBorder = isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0);
+    final fieldBg = isDark ? AppColors.darkSurfaceVariant : const Color(0xFFF8FAFC);
+    final fieldBorder = isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0);
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.primary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B);
+    final accentOrPrimary = isDark ? AppColors.accent : AppColors.primary;
+
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Voice-to-Catalog',
             style: TextStyle(
               fontSize: 26,
               fontWeight: FontWeight.w800,
-              color: AppColors.primary,
+              color: textPrimary,
               letterSpacing: -0.5,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'Speak about your craft in Hindi or regional language — AI generates the listing',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF8A94A6)),
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: textSecondary),
           ),
           const SizedBox(height: 20),
 
@@ -653,7 +668,7 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                     ? AppColors.error
                     : _isCataloging
                         ? AppColors.accent
-                        : const Color(0xFF15803D),
+                        : (isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
               ),
             ),
           ),
@@ -662,7 +677,7 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
           // Quick Sample Notes for easy testing
           Row(
             children: [
-              const Text('Quick Samples:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF8A94A6))),
+              Text('Quick Samples:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: textSecondary)),
               const SizedBox(width: 8),
               Expanded(
                 child: SingleChildScrollView(
@@ -686,23 +701,23 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
               margin: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: cardBg,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: cardBorder),
               ),
-              child: const Column(
+              child: Column(
                 children: [
-                  CircularProgressIndicator(color: AppColors.accent),
-                  SizedBox(height: 16),
+                  const CircularProgressIndicator(color: AppColors.accent),
+                  const SizedBox(height: 16),
                   Text(
                     'Analyzing craft with Qwen 3.8 on Groq...',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.primary),
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: textPrimary),
                   ),
-                  SizedBox(height: 6),
+                  const SizedBox(height: 6),
                   Text(
                     'Extracting heritage story, SEO tags, labor hours & pricing economics from your photo',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 12, color: Color(0xFF8A94A6)),
+                    style: TextStyle(fontSize: 12, color: textSecondary),
                   ),
                 ],
               ),
@@ -714,23 +729,23 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: cardBg,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  border: Border.all(color: cardBorder),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Row(
+                    Row(
                       children: [
-                        Icon(Icons.mic_rounded, size: 15, color: Color(0xFF15803D)),
-                        SizedBox(width: 6),
+                        Icon(Icons.mic_rounded, size: 15, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
+                        const SizedBox(width: 6),
                         Text(
                           'Recorded Voice Note',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF15803D),
+                            color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D),
                           ),
                         ),
                       ],
@@ -738,11 +753,11 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                     const SizedBox(height: 6),
                     Text(
                       _transcript,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         height: 1.4,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
+                        color: textPrimary,
                       ),
                     ),
                   ],
@@ -756,58 +771,58 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: cardBg,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: cardBorder),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.auto_awesome, size: 14, color: AppColors.primary),
-                      SizedBox(width: 6),
+                      Icon(Icons.auto_awesome, size: 14, color: accentOrPrimary),
+                      const SizedBox(width: 6),
                       Text(
                         'English Listing (Editable)',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
+                          color: accentOrPrimary,
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  const Text('Product Title (English)',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                  Text('Product Title (English)',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: textSecondary)),
                   const SizedBox(height: 4),
                   TextField(
                     controller: _titleEnCtrl,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.primary),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: textPrimary),
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
+                      fillColor: fieldBg,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: fieldBorder)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: fieldBorder)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: accentOrPrimary, width: 1.5)),
                     ),
                   ),
                   const SizedBox(height: 10),
-                  const Text('Product Description (English)',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                  Text('Product Description (English)',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: textSecondary)),
                   const SizedBox(height: 4),
                   TextField(
                     controller: _descEnCtrl,
                     maxLines: 3,
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF334155), height: 1.4),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: textPrimary, height: 1.4),
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
+                      fillColor: fieldBg,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: fieldBorder)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: fieldBorder)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: accentOrPrimary, width: 1.5)),
                     ),
                   ),
                 ],
@@ -820,58 +835,58 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFFEF9EE),
+                color: isDark ? AppColors.darkSurface : const Color(0xFFFEF9EE),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFFDE68A)),
+                border: Border.all(color: isDark ? const Color(0xFFB45309) : const Color(0xFFFDE68A)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.auto_awesome, size: 14, color: Color(0xFF92400E)),
-                      SizedBox(width: 6),
+                      Icon(Icons.auto_awesome, size: 14, color: isDark ? const Color(0xFFFBBF24) : const Color(0xFF92400E)),
+                      const SizedBox(width: 6),
                       Text(
                         'Hindi Listing - हिंदी विवरण (Editable)',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF92400E),
+                          color: isDark ? const Color(0xFFFBBF24) : const Color(0xFF92400E),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  const Text('उत्पाद शीर्षक (Title in Hindi)',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF92400E))),
+                  Text('उत्पाद शीर्षक (Title in Hindi)',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: isDark ? const Color(0xFFFCD34D) : const Color(0xFF92400E))),
                   const SizedBox(height: 4),
                   TextField(
                     controller: _titleHiCtrl,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF92400E)),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: isDark ? AppColors.darkTextPrimary : const Color(0xFF92400E)),
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: isDark ? AppColors.darkSurfaceVariant : Colors.white,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFFDE68A))),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFFDE68A))),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF92400E), width: 1.5)),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: isDark ? AppColors.darkBorder : const Color(0xFFFDE68A))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: isDark ? AppColors.darkBorder : const Color(0xFFFDE68A))),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: isDark ? AppColors.accent : const Color(0xFF92400E), width: 1.5)),
                     ),
                   ),
                   const SizedBox(height: 10),
-                  const Text('उत्पाद का विवरण (Description in Hindi)',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF92400E))),
+                  Text('उत्पाद का विवरण (Description in Hindi)',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: isDark ? const Color(0xFFFCD34D) : const Color(0xFF92400E))),
                   const SizedBox(height: 4),
                   TextField(
                     controller: _descHiCtrl,
                     maxLines: 3,
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF92400E), height: 1.4),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: isDark ? AppColors.darkTextPrimary : const Color(0xFF92400E), height: 1.4),
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: isDark ? AppColors.darkSurfaceVariant : Colors.white,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFFDE68A))),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFFDE68A))),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF92400E), width: 1.5)),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: isDark ? AppColors.darkBorder : const Color(0xFFFDE68A))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: isDark ? AppColors.darkBorder : const Color(0xFFFDE68A))),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: isDark ? AppColors.accent : const Color(0xFF92400E), width: 1.5)),
                     ),
                   ),
                 ],
@@ -884,23 +899,23 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: cardBg,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: cardBorder),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.history_edu_rounded, size: 16, color: AppColors.primary),
-                      SizedBox(width: 6),
+                      Icon(Icons.history_edu_rounded, size: 16, color: accentOrPrimary),
+                      const SizedBox(width: 6),
                       Text(
                         'Artisan Heritage Story (Editable)',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
+                          color: accentOrPrimary,
                         ),
                       ),
                     ],
@@ -909,16 +924,16 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                   TextField(
                     controller: _storyCtrl,
                     maxLines: 3,
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF334155), height: 1.4),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: textPrimary, height: 1.4),
                     decoration: InputDecoration(
                       hintText: 'Generational story and traditional craft heritage...',
-                      hintStyle: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                      hintStyle: TextStyle(fontSize: 12, color: textSecondary),
                       filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
+                      fillColor: fieldBg,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: fieldBorder)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: fieldBorder)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: accentOrPrimary, width: 1.5)),
                     ),
                   ),
                 ],
@@ -931,23 +946,23 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: cardBg,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: cardBorder),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.sell_outlined, size: 14, color: AppColors.primary),
-                      SizedBox(width: 6),
+                      Icon(Icons.sell_outlined, size: 14, color: accentOrPrimary),
+                      const SizedBox(width: 6),
                       Text(
                         'Category, Materials & SEO Tags',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
+                          color: accentOrPrimary,
                         ),
                       ),
                     ],
@@ -959,18 +974,19 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Category',
-                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                            Text('Category',
+                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: textSecondary)),
                             const SizedBox(height: 4),
                             TextField(
                               controller: _categoryCtrl,
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary),
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textPrimary),
                               decoration: InputDecoration(
                                 filled: true,
-                                fillColor: const Color(0xFFF8FAFC),
+                                fillColor: fieldBg,
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: fieldBorder)),
+                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: fieldBorder)),
+                                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: accentOrPrimary, width: 1.5)),
                               ),
                             ),
                           ],
@@ -981,18 +997,19 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Raw Materials',
-                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                            Text('Raw Materials',
+                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: textSecondary)),
                             const SizedBox(height: 4),
                             TextField(
                               controller: _materialsCtrl,
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary),
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textPrimary),
                               decoration: InputDecoration(
                                 filled: true,
-                                fillColor: const Color(0xFFF8FAFC),
+                                fillColor: fieldBg,
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: fieldBorder)),
+                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: fieldBorder)),
+                                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: accentOrPrimary, width: 1.5)),
                               ),
                             ),
                           ],
@@ -1001,20 +1018,21 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  const Text('SEO Tags (Comma Separated)',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                  Text('SEO Tags (Comma Separated)',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: textSecondary)),
                   const SizedBox(height: 4),
                   TextField(
                     controller: _tagsCtrl,
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textPrimary),
                     decoration: InputDecoration(
                       hintText: 'e.g. Handloom, Pure Silk, GI Tag, Banarasi',
-                      hintStyle: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                      hintStyle: TextStyle(fontSize: 12, color: textSecondary),
                       filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
+                      fillColor: fieldBg,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: fieldBorder)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: fieldBorder)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: accentOrPrimary, width: 1.5)),
                     ),
                   ),
                 ],
@@ -1027,23 +1045,23 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: cardBg,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: cardBorder),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.monetization_on_outlined, size: 14, color: AppColors.primary),
-                      SizedBox(width: 6),
+                      Icon(Icons.monetization_on_outlined, size: 14, color: accentOrPrimary),
+                      const SizedBox(width: 6),
                       Text(
                         'Estimated Labor & Material Cost (AI Auto-filled)',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
+                          color: accentOrPrimary,
                         ),
                       ),
                     ],
@@ -1055,19 +1073,20 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Labor Hours',
-                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                            Text('Labor Hours',
+                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: textSecondary)),
                             const SizedBox(height: 4),
                             TextField(
                               controller: _laborHoursCtrl,
                               keyboardType: TextInputType.number,
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary),
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textPrimary),
                               decoration: InputDecoration(
                                 filled: true,
-                                fillColor: const Color(0xFFF8FAFC),
+                                fillColor: fieldBg,
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: fieldBorder)),
+                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: fieldBorder)),
+                                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: accentOrPrimary, width: 1.5)),
                               ),
                             ),
                           ],
@@ -1078,19 +1097,20 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Material Cost (₹)',
-                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                            Text('Material Cost (₹)',
+                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: textSecondary)),
                             const SizedBox(height: 4),
                             TextField(
                               controller: _materialCostCtrl,
                               keyboardType: TextInputType.number,
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary),
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textPrimary),
                               decoration: InputDecoration(
                                 filled: true,
-                                fillColor: const Color(0xFFF8FAFC),
+                                fillColor: fieldBg,
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: fieldBorder)),
+                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: fieldBorder)),
+                                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: accentOrPrimary, width: 1.5)),
                               ),
                             ),
                           ],
@@ -1115,8 +1135,8 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                 _calculatePriceWithAi();
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
+                backgroundColor: isDark ? AppColors.accent : AppColors.primary,
+                foregroundColor: isDark ? AppColors.darkBackground : Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
@@ -1138,24 +1158,32 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
 
   // ── Step 3: Fair-Wage Pricing Assistant ──────────────────────────
   Widget _buildPricingStep() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? AppColors.darkSurface : Colors.white;
+    final cardBorder = isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0);
+    final fieldBg = isDark ? AppColors.darkSurfaceVariant : Colors.white;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.primary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : const Color(0xFF8A94A6);
+    final accentOrPrimary = isDark ? AppColors.accent : AppColors.primary;
+
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Fair-Wage Pricing Assistant',
             style: TextStyle(
               fontSize: 26,
               fontWeight: FontWeight.w800,
-              color: AppColors.primary,
+              color: textPrimary,
               letterSpacing: -0.5,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'XGBoost & SHAP Explainable AI ensures fair compensation for artisan labor',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF8A94A6)),
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: textSecondary),
           ),
           const SizedBox(height: 20),
 
@@ -1166,23 +1194,31 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Material Cost (₹)',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.primary),
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: textPrimary),
                     ),
                     const SizedBox(height: 6),
                     TextField(
                       controller: _materialCostCtrl,
                       keyboardType: TextInputType.number,
                       onSubmitted: (_) => _calculatePriceWithAi(),
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.primary),
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: textPrimary),
                       decoration: InputDecoration(
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: fieldBg,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          borderSide: BorderSide(color: cardBorder),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: cardBorder),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: accentOrPrimary, width: 1.5),
                         ),
                       ),
                     ),
@@ -1194,23 +1230,31 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Labor Hours',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.primary),
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: textPrimary),
                     ),
                     const SizedBox(height: 6),
                     TextField(
                       controller: _laborHoursCtrl,
                       keyboardType: TextInputType.number,
                       onSubmitted: (_) => _calculatePriceWithAi(),
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.primary),
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: textPrimary),
                       decoration: InputDecoration(
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: fieldBg,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          borderSide: BorderSide(color: cardBorder),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: cardBorder),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: accentOrPrimary, width: 1.5),
                         ),
                       ),
                     ),
@@ -1227,9 +1271,9 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
             child: TextButton.icon(
               onPressed: _isCalculatingPrice ? null : _calculatePriceWithAi,
               icon: _isCalculatingPrice
-                  ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.refresh_rounded, size: 16),
-              label: const Text('Recalculate AI Fair Price', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                  ? SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: accentOrPrimary))
+                  : Icon(Icons.refresh_rounded, size: 16, color: accentOrPrimary),
+              label: Text('Recalculate AI Fair Price', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: accentOrPrimary)),
             ),
           ),
           const SizedBox(height: 6),
@@ -1239,20 +1283,20 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFFFEF9EE),
+              color: isDark ? const Color(0xFFD97706).withValues(alpha: 0.15) : const Color(0xFFFEF9EE),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFFDE68A)),
+              border: Border.all(color: isDark ? const Color(0xFFB45309) : const Color(0xFFFDE68A)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.auto_awesome, color: Color(0xFFD97706), size: 18),
+                Icon(Icons.auto_awesome, color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706), size: 18),
                 const SizedBox(width: 8),
                 Text(
                   '$_category Craft — 1.6× Fair Labor Multiplier',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF92400E),
+                    color: isDark ? const Color(0xFFFDE68A) : const Color(0xFF92400E),
                   ),
                 ),
               ],
@@ -1265,19 +1309,19 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: cardBg,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              border: Border.all(color: cardBorder),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Live Market Price Range',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF64748B),
+                    color: isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B),
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -1289,20 +1333,20 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('₹ ${_breakevenPrice.toInt()}',
-                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFFDC2626))),
-                        const Text('Breakeven', style: TextStyle(fontSize: 11, color: Color(0xFF8A94A6))),
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))),
+                        Text('Breakeven', style: TextStyle(fontSize: 11, color: textSecondary)),
                       ],
                     ),
                     Column(
                       children: [
                         Text('₹ ${_currentPrice.toInt()}',
-                            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Color(0xFFD97706))),
-                        const Row(
+                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706))),
+                        Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.star_rounded, size: 14, color: Color(0xFFD97706)),
-                            SizedBox(width: 2),
-                            Text('AI Suggested', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFFD97706))),
+                            Icon(Icons.star_rounded, size: 14, color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706)),
+                            const SizedBox(width: 2),
+                            Text('AI Suggested', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706))),
                           ],
                         ),
                       ],
@@ -1311,8 +1355,8 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text('₹ ${_premiumPrice.toInt()}',
-                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF15803D))),
-                        const Text('Premium', style: TextStyle(fontSize: 11, color: Color(0xFF8A94A6))),
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D))),
+                        Text('Premium', style: TextStyle(fontSize: 11, color: textSecondary)),
                       ],
                     ),
                   ],
@@ -1321,7 +1365,7 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                 SliderTheme(
                   data: SliderTheme.of(context).copyWith(
                     activeTrackColor: const Color(0xFFF5A623),
-                    inactiveTrackColor: const Color(0xFF334155),
+                    inactiveTrackColor: isDark ? AppColors.darkBorder : const Color(0xFF334155),
                     thumbColor: const Color(0xFFF5A623),
                     trackHeight: 6,
                   ),
@@ -1342,27 +1386,28 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
+              color: isDark ? AppColors.darkSurface : const Color(0xFFF1F5F9),
               borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: cardBorder),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Wholesale B2B Price (75% of retail)',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF334155),
+                    color: isDark ? AppColors.darkTextSecondary : const Color(0xFF334155),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '₹ ${(_currentPrice * 0.75).toInt()}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.primary,
+                    color: accentOrPrimary,
                   ),
                 ),
               ],
@@ -1371,12 +1416,12 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
           const SizedBox(height: 18),
 
           // AI PRICE FACTORS (XAI)
-          const Text(
+          Text(
             'AI PRICE FACTORS (XAI)',
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF8A94A6),
+              color: textSecondary,
               letterSpacing: 0.8,
             ),
           ),
@@ -1411,7 +1456,7 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
               onPressed: _isPublishing ? null : _publishListing,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFF5A623),
-                foregroundColor: Colors.white,
+                foregroundColor: AppColors.darkBackground,
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
@@ -1419,7 +1464,7 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
                   ? const SizedBox(
                       width: 22,
                       height: 22,
-                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      child: CircularProgressIndicator(color: AppColors.darkBackground, strokeWidth: 2),
                     )
                   : const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -1442,23 +1487,25 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
 
   // ── Helper Widgets ───────────────────────────────────────────────
   Widget _buildQuickPromptChip(String title, String prompt) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(right: 6),
       child: ActionChip(
-        label: Text(title, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
-        backgroundColor: Colors.white,
-        side: const BorderSide(color: Color(0xFFE2E8F0)),
+        label: Text(title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isDark ? AppColors.darkTextPrimary : AppColors.primary)),
+        backgroundColor: isDark ? AppColors.darkSurfaceVariant : Colors.white,
+        side: BorderSide(color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0)),
         onPressed: () => _generateCatalogFromText(prompt),
       ),
     );
   }
 
   Widget _buildFactorPill(String label, Color bg, Color textColor) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: bg,
+        color: isDark ? textColor.withValues(alpha: 0.18) : bg,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Text(
@@ -1466,7 +1513,7 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
         style: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w700,
-          color: textColor,
+          color: isDark ? (textColor == const Color(0xFF1E40AF) ? const Color(0xFF93C5FD) : textColor == const Color(0xFF92400E) ? const Color(0xFFFDE68A) : textColor == const Color(0xFF065F46) ? const Color(0xFF86EFAC) : const Color(0xFFE9D5FF)) : textColor,
         ),
       ),
     );
@@ -1943,21 +1990,33 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
           ? draft.titleEn!
           : 'Craft Listing Draft';
 
+      final isDark = Theme.of(context).brightness == Brightness.dark;
       final shouldResume = await showDialog<bool>(
         context: context,
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
+          backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.restore_page_rounded, color: Color(0xFFF5A623)),
-              SizedBox(width: 8),
-              Text('Resume Draft?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              const Icon(Icons.restore_page_rounded, color: Color(0xFFF5A623)),
+              const SizedBox(width: 8),
+              Text(
+                'Resume Draft?',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
+                ),
+              ),
             ],
           ),
           content: Text(
             'You have an unfinished craft draft for "$draftTitle". Would you like to resume editing where you left off?',
-            style: const TextStyle(fontSize: 14, color: Color(0xFF334155)),
+            style: TextStyle(
+              fontSize: 14,
+              color: isDark ? AppColors.darkTextSecondary : const Color(0xFF334155),
+            ),
           ),
           actions: [
             TextButton(
@@ -1967,8 +2026,8 @@ class _AiCameraStudioScreenState extends ConsumerState<AiCameraStudioScreen> {
             ElevatedButton(
               onPressed: () => Navigator.of(ctx).pop(true),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
+                backgroundColor: isDark ? AppColors.accent : AppColors.primary,
+                foregroundColor: isDark ? AppColors.primary : Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
               child: const Text('Resume Draft', style: TextStyle(fontWeight: FontWeight.w700)),

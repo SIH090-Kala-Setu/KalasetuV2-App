@@ -213,9 +213,9 @@ class _ArtisanPortfolioScreenState extends ConsumerState<ArtisanPortfolioScreen>
                   backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
                   tabBar: TabBar(
                     controller: _tabController,
-                    labelColor: AppColors.primary,
+                    labelColor: isDark ? AppColors.accent : AppColors.primary,
                     unselectedLabelColor: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                    indicatorColor: AppColors.primary,
+                    indicatorColor: isDark ? AppColors.accent : AppColors.primary,
                     indicatorWeight: 3,
                     tabs: [
                       Tab(
@@ -299,7 +299,7 @@ class _ArtisanPortfolioScreenState extends ConsumerState<ArtisanPortfolioScreen>
                           children: [
                             Row(
                               children: [
-                                const Icon(Icons.auto_stories_outlined, color: AppColors.primary, size: 20),
+                                Icon(Icons.auto_stories_outlined, color: isDark ? AppColors.accent : AppColors.primary, size: 20),
                                 const SizedBox(width: 8),
                                 Text('Artisan Heritage & Story', style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold)),
                               ],
@@ -327,7 +327,7 @@ class _ArtisanPortfolioScreenState extends ConsumerState<ArtisanPortfolioScreen>
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.badge_outlined, color: AppColors.primary, size: 20),
+                              Icon(Icons.badge_outlined, color: isDark ? AppColors.accent : AppColors.primary, size: 20),
                               const SizedBox(width: 8),
                               Text('Artisan Craft Profile', style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold)),
                             ],
@@ -356,8 +356,8 @@ class _ArtisanPortfolioScreenState extends ConsumerState<ArtisanPortfolioScreen>
             ),
           );
         },
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
+        loading: () => Center(
+          child: CircularProgressIndicator(color: isDark ? AppColors.accent : AppColors.primary),
         ),
         error: (e, _) => Center(
           child: Padding(
@@ -537,10 +537,10 @@ class _AboutRow extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.08),
+              color: (isDark ? AppColors.accent : AppColors.primary).withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, color: AppColors.primary, size: 18),
+            child: Icon(icon, color: isDark ? AppColors.accent : AppColors.primary, size: 18),
           ),
           const SizedBox(width: 12),
           Expanded(

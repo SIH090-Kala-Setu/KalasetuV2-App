@@ -59,7 +59,7 @@ class OfflineDraftBanner extends StatelessWidget {
               child: Text(
                 isOfflineSync ? 'Retry' : 'Resume',
                 style: AppTextStyles.labelMedium.copyWith(
-                  color: AppColors.primary,
+                  color: AppColors.adaptivePrimary(context),
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -71,7 +71,7 @@ class OfflineDraftBanner extends StatelessWidget {
               onPressed: onDismiss,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-              color: AppColors.lightTextSecondary,
+              color: AppColors.textSecondary(context),
             ),
         ],
       ),

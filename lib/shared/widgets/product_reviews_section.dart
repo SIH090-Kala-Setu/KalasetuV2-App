@@ -237,10 +237,10 @@ class _ReviewCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 18,
-                backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+                backgroundColor: (isDark ? AppColors.accent : AppColors.primary).withValues(alpha: 0.18),
                 child: Text(
                   review.buyerName.isNotEmpty ? review.buyerName[0] : '?',
-                  style: AppTextStyles.titleSmall.copyWith(color: AppColors.primary),
+                  style: AppTextStyles.titleSmall.copyWith(color: isDark ? AppColors.accent : AppColors.primary),
                 ),
               ),
               const SizedBox(width: 10),
@@ -257,7 +257,7 @@ class _ReviewCard extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: AppColors.badgeActiveLight,
+                              color: isDark ? AppColors.success.withValues(alpha: 0.18) : AppColors.badgeActiveLight,
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(

@@ -70,9 +70,9 @@ class BuyerProfileScreen extends ConsumerWidget {
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).cardColor,
+                        color: isDark ? AppColors.darkSurface : Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.1)),
+                        border: Border.all(color: isDark ? AppColors.darkBorder : Theme.of(context).dividerColor.withValues(alpha: 0.1)),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.03),
@@ -87,12 +87,14 @@ class BuyerProfileScreen extends ConsumerWidget {
                             icon: Icons.email_outlined,
                             label: 'Email',
                             value: user?.email?.isNotEmpty == true ? user!.email! : 'Not set',
+                            isDark: isDark,
                           ),
                           const Divider(height: 16),
                           _buildInfoRow(
                             icon: Icons.phone_outlined,
                             label: 'Phone',
                             value: user?.phone?.isNotEmpty == true ? user!.phone! : 'Not set',
+                            isDark: isDark,
                           ),
                           const Divider(height: 16),
                           _buildInfoRow(
@@ -106,12 +108,14 @@ class BuyerProfileScreen extends ConsumerWidget {
                                     .where((e) => e != null && e.isNotEmpty)
                                     .join(', ')
                                 : 'Not set',
+                            isDark: isDark,
                           ),
                           const Divider(height: 16),
                           _buildInfoRow(
                             icon: Icons.language_rounded,
                             label: 'Preferred Language',
                             value: user?.preferredLang.toUpperCase() ?? 'EN',
+                            isDark: isDark,
                           ),
                         ],
                       ),
@@ -121,7 +125,7 @@ class BuyerProfileScreen extends ConsumerWidget {
                     Text('Settings', style: AppTextStyles.headlineSmall),
                     const SizedBox(height: 12),
                     ListTile(
-                      leading: const Icon(Icons.person_outline_rounded, color: AppColors.buyerColor),
+                      leading: Icon(Icons.person_outline_rounded, color: isDark ? const Color(0xFFF472B6) : AppColors.buyerColor),
                       title: const Text('Edit Profile'),
                       subtitle: const Text('Name, contact, location & language'),
                       trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
@@ -129,7 +133,7 @@ class BuyerProfileScreen extends ConsumerWidget {
                       onTap: () => _showEditBuyerProfileModal(context, ref, user),
                     ),
                     ListTile(
-                      leading: const Icon(Icons.dark_mode_outlined, color: AppColors.buyerColor),
+                      leading: Icon(Icons.dark_mode_outlined, color: isDark ? const Color(0xFFF472B6) : AppColors.buyerColor),
                       title: const Text('Dark Mode'),
                       trailing: Switch(
                         value: isDark,
@@ -138,7 +142,7 @@ class BuyerProfileScreen extends ConsumerWidget {
                       contentPadding: EdgeInsets.zero,
                     ),
                     ListTile(
-                      leading: const Icon(Icons.dns_outlined, color: AppColors.buyerColor),
+                      leading: Icon(Icons.dns_outlined, color: isDark ? const Color(0xFFF472B6) : AppColors.buyerColor),
                       title: const Text('Server Configuration'),
                       subtitle: const Text('Switch between Localhost / Android / Production'),
                       trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
@@ -148,10 +152,10 @@ class BuyerProfileScreen extends ConsumerWidget {
                         builder: (_) => const ServerConfigDialog(),
                       ),
                     ),
-                    const ListTile(
-                      leading: Icon(Icons.notifications_outlined, color: AppColors.buyerColor),
-                      title: Text('Notifications'),
-                      trailing: Icon(Icons.arrow_forward_ios_rounded, size: 14),
+                    ListTile(
+                      leading: Icon(Icons.notifications_outlined, color: isDark ? const Color(0xFFF472B6) : AppColors.buyerColor),
+                      title: const Text('Notifications'),
+                      trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
                       contentPadding: EdgeInsets.zero,
                     ),
                     const SizedBox(height: 24),
@@ -174,15 +178,19 @@ class BuyerProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildInfoRow({required IconData icon, required String label, required String value}) {
+  Widget _buildInfoRow({required IconData icon, required String label, required String value, required bool isDark}) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: AppColors.buyerColor),
+        Icon(icon, size: 18, color: isDark ? const Color(0xFFF472B6) : AppColors.buyerColor),
         const SizedBox(width: 12),
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+            style: TextStyle(
+              fontSize: 13,
+              color: isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B),
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
         Text(
@@ -324,12 +332,12 @@ class _EditBuyerProfileSheetState extends ConsumerState<_EditBuyerProfileSheet> 
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.buyerColor.withValues(alpha: 0.1),
+                      color: (isDark ? const Color(0xFFF472B6) : AppColors.buyerColor).withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.photo_library_outlined, color: AppColors.buyerColor),
+                    child: Icon(Icons.photo_library_outlined, color: isDark ? const Color(0xFFF472B6) : AppColors.buyerColor),
                   ),
-                  title: const Text('Choose from Gallery / Files', style: TextStyle(fontWeight: FontWeight.w600)),
+                  title: Text('Choose from Gallery / Files', style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary)),
                   onTap: () {
                     Navigator.pop(ctx);
                     _pickImage(ImageSource.gallery);
@@ -339,12 +347,12 @@ class _EditBuyerProfileSheetState extends ConsumerState<_EditBuyerProfileSheet> 
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.buyerColor.withValues(alpha: 0.1),
+                      color: (isDark ? const Color(0xFFF472B6) : AppColors.buyerColor).withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.camera_alt_outlined, color: AppColors.buyerColor),
+                    child: Icon(Icons.camera_alt_outlined, color: isDark ? const Color(0xFFF472B6) : AppColors.buyerColor),
                   ),
-                  title: const Text('Take Photo with Camera', style: TextStyle(fontWeight: FontWeight.w600)),
+                  title: Text('Take Photo with Camera', style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary)),
                   onTap: () {
                     Navigator.pop(ctx);
                     _pickImage(ImageSource.camera);
@@ -428,6 +436,9 @@ class _EditBuyerProfileSheetState extends ConsumerState<_EditBuyerProfileSheet> 
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark ? const Color(0xFFF472B6) : AppColors.buyerColor;
+
     return Container(
       padding: EdgeInsets.only(
         left: 20,
@@ -436,7 +447,7 @@ class _EditBuyerProfileSheetState extends ConsumerState<_EditBuyerProfileSheet> 
         bottom: 20 + bottomInset,
       ),
       decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
+        color: isDark ? AppColors.darkSurface : Theme.of(context).scaffoldBackgroundColor,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SingleChildScrollView(
@@ -460,13 +471,13 @@ class _EditBuyerProfileSheetState extends ConsumerState<_EditBuyerProfileSheet> 
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.edit_rounded, color: AppColors.buyerColor, size: 22),
+                    Icon(Icons.edit_rounded, color: primaryColor, size: 22),
                     const SizedBox(width: 8),
                     Text(
                       'Edit Buyer Profile',
                       style: AppTextStyles.headlineSmall.copyWith(
                         fontWeight: FontWeight.w800,
-                        color: AppColors.buyerColor,
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.buyerColor,
                       ),
                     ),
                   ],
@@ -474,9 +485,7 @@ class _EditBuyerProfileSheetState extends ConsumerState<_EditBuyerProfileSheet> 
                 IconButton(
                   icon: Icon(
                     Icons.close_rounded,
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? AppColors.darkTextSecondary
-                        : const Color(0xFF64748B),
+                    color: isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B),
                     size: 24,
                   ),
                   onPressed: () => Navigator.of(context).pop(),
@@ -501,18 +510,18 @@ class _EditBuyerProfileSheetState extends ConsumerState<_EditBuyerProfileSheet> 
                           photoUrl: _photoUrlController.text.trim(),
                           name: _nameController.text.isNotEmpty ? _nameController.text : (widget.user?.fullName ?? ''),
                           radius: 44,
-                          backgroundColor: AppColors.buyerColor.withValues(alpha: 0.15),
-                          textColor: AppColors.buyerColor,
+                          backgroundColor: primaryColor.withValues(alpha: 0.15),
+                          textColor: primaryColor,
                           fontSize: 32,
-                          border: Border.all(color: AppColors.buyerColor, width: 2.5),
+                          border: Border.all(color: primaryColor, width: 2.5),
                         ),
                         Positioned(
                           right: 0,
                           bottom: 0,
                           child: Container(
                             padding: const EdgeInsets.all(6),
-                            decoration: const BoxDecoration(
-                              color: AppColors.buyerColor,
+                            decoration: BoxDecoration(
+                              color: primaryColor,
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(Icons.camera_alt_rounded, size: 16, color: Colors.white),
@@ -568,6 +577,7 @@ class _EditBuyerProfileSheetState extends ConsumerState<_EditBuyerProfileSheet> 
               controller: _nameController,
               label: 'Full Name *',
               icon: Icons.person_outline,
+              isDark: isDark,
             ),
             const SizedBox(height: 14),
             _buildTextField(
@@ -575,6 +585,7 @@ class _EditBuyerProfileSheetState extends ConsumerState<_EditBuyerProfileSheet> 
               label: 'Email Address',
               icon: Icons.email_outlined,
               keyboardType: TextInputType.emailAddress,
+              isDark: isDark,
             ),
             const SizedBox(height: 14),
             _buildTextField(
@@ -582,6 +593,7 @@ class _EditBuyerProfileSheetState extends ConsumerState<_EditBuyerProfileSheet> 
               label: 'Phone Number',
               icon: Icons.phone_outlined,
               keyboardType: TextInputType.phone,
+              isDark: isDark,
             ),
             const SizedBox(height: 14),
             Row(
@@ -591,6 +603,7 @@ class _EditBuyerProfileSheetState extends ConsumerState<_EditBuyerProfileSheet> 
                     controller: _stateController,
                     label: 'State',
                     icon: Icons.map_outlined,
+                    isDark: isDark,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -599,6 +612,7 @@ class _EditBuyerProfileSheetState extends ConsumerState<_EditBuyerProfileSheet> 
                     controller: _districtController,
                     label: 'District',
                     icon: Icons.location_city_outlined,
+                    isDark: isDark,
                   ),
                 ),
               ],
@@ -608,7 +622,7 @@ class _EditBuyerProfileSheetState extends ConsumerState<_EditBuyerProfileSheet> 
               initialValue: _selectedLanguage,
               decoration: InputDecoration(
                 labelText: 'Preferred Language',
-                prefixIcon: const Icon(Icons.language_rounded, color: AppColors.buyerColor),
+                prefixIcon: Icon(Icons.language_rounded, color: primaryColor),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               ),
@@ -629,16 +643,16 @@ class _EditBuyerProfileSheetState extends ConsumerState<_EditBuyerProfileSheet> 
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _saveProfile,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.buyerColor,
-                  foregroundColor: Colors.white,
+                  backgroundColor: primaryColor,
+                  foregroundColor: isDark ? const Color(0xFF880E4F) : Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   elevation: 0,
                 ),
                 child: _isLoading
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 22,
                         height: 22,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        child: CircularProgressIndicator(color: isDark ? const Color(0xFF880E4F) : Colors.white, strokeWidth: 2),
                       )
                     : const Text(
                         'Save Changes',
@@ -658,13 +672,14 @@ class _EditBuyerProfileSheetState extends ConsumerState<_EditBuyerProfileSheet> 
     required String label,
     required IconData icon,
     TextInputType keyboardType = TextInputType.text,
+    required bool isDark,
   }) {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: AppColors.buyerColor),
+        prefixIcon: Icon(icon, color: isDark ? const Color(0xFFF472B6) : AppColors.buyerColor),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       ),

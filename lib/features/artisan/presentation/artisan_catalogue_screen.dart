@@ -129,12 +129,12 @@ class _ArtisanCatalogueScreenState extends ConsumerState<ArtisanCatalogueScreen>
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'My Catalogue',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.primary,
+                      color: AppColors.textPrimary(context),
                       letterSpacing: -0.5,
                     ),
                   ),
@@ -171,6 +171,7 @@ class _ArtisanCatalogueScreenState extends ConsumerState<ArtisanCatalogueScreen>
                     data: (products) {
                       final sourceList = products.isNotEmpty ? products : _getDemoProductModels();
                       final filtered = _filterAndSortProducts(sourceList);
+                      final isDark = Theme.of(context).brightness == Brightness.dark;
 
                       if (filtered.isEmpty) {
                         return Center(
@@ -182,7 +183,9 @@ class _ArtisanCatalogueScreenState extends ConsumerState<ArtisanCatalogueScreen>
                                 Container(
                                   padding: const EdgeInsets.all(18),
                                   decoration: BoxDecoration(
-                                    color: AppColors.primary.withValues(alpha: 0.08),
+                                    color: isDark
+                                        ? AppColors.darkSurfaceVariant
+                                        : AppColors.primary.withValues(alpha: 0.08),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(
@@ -190,7 +193,7 @@ class _ArtisanCatalogueScreenState extends ConsumerState<ArtisanCatalogueScreen>
                                         ? Icons.archive_outlined
                                         : Icons.inventory_2_outlined,
                                     size: 48,
-                                    color: AppColors.primary,
+                                    color: isDark ? AppColors.accent : AppColors.primary,
                                   ),
                                 ),
                                 const SizedBox(height: 16),
@@ -198,10 +201,10 @@ class _ArtisanCatalogueScreenState extends ConsumerState<ArtisanCatalogueScreen>
                                   _selectedFilter == 'Archived'
                                       ? 'No Archived Products'
                                       : 'No ${_selectedFilter.toLowerCase()} products found',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w700,
-                                    color: Color(0xFF334155),
+                                    color: isDark ? AppColors.darkTextPrimary : const Color(0xFF334155),
                                   ),
                                 ),
                                 const SizedBox(height: 6),
@@ -209,14 +212,20 @@ class _ArtisanCatalogueScreenState extends ConsumerState<ArtisanCatalogueScreen>
                                   _selectedFilter == 'Archived'
                                       ? 'Products marked as Archived will appear here.'
                                       : 'Try selecting a different filter or adding a new product.',
-                                  style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B),
+                                  ),
                                   textAlign: TextAlign.center,
                                 ),
                                 if (_selectedFilter != 'All') ...[
                                   const SizedBox(height: 16),
                                   TextButton(
                                     onPressed: () => setState(() => _selectedFilter = 'All'),
-                                    child: const Text('Show All Products'),
+                                    child: Text(
+                                      'Show All Products',
+                                      style: TextStyle(color: isDark ? AppColors.accent : AppColors.primary),
+                                    ),
                                   ),
                                 ],
                               ],
@@ -247,8 +256,8 @@ class _ArtisanCatalogueScreenState extends ConsumerState<ArtisanCatalogueScreen>
                         },
                       );
                     },
-                    loading: () => const Center(
-                      child: CircularProgressIndicator(color: AppColors.primary),
+                    loading: () => Center(
+                      child: CircularProgressIndicator(color: AppColors.adaptivePrimary(context)),
                     ),
                     error: (err, stack) {
                       final filtered = _filterAndSortProducts(_getDemoProductModels());
@@ -291,6 +300,7 @@ class _ArtisanCatalogueScreenState extends ConsumerState<ArtisanCatalogueScreen>
   }
 
   Widget _buildSortDropdown() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     String label;
     switch (_sortBy) {
       case 'newest':
@@ -309,76 +319,82 @@ class _ArtisanCatalogueScreenState extends ConsumerState<ArtisanCatalogueScreen>
         label = 'Sort';
     }
 
+    final accentOrPrimary = isDark ? AppColors.accent : AppColors.primary;
+    final itemTextColor = isDark ? AppColors.darkTextPrimary : const Color(0xFF334155);
+    final itemIconColor = isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B);
+
     return PopupMenuButton<String>(
       initialValue: _sortBy,
       tooltip: 'Sort products',
       onSelected: (val) => setState(() => _sortBy = val),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       elevation: 3,
-      color: Colors.white,
+      color: isDark ? AppColors.darkSurface : Colors.white,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.08),
+          color: isDark ? AppColors.darkSurfaceVariant : AppColors.primary.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : AppColors.primary.withValues(alpha: 0.2),
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.sort_rounded, size: 16, color: AppColors.primary),
+            Icon(Icons.sort_rounded, size: 16, color: accentOrPrimary),
             const SizedBox(width: 4),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: AppColors.primary,
+                color: accentOrPrimary,
               ),
             ),
             const SizedBox(width: 2),
-            const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: AppColors.primary),
+            Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: accentOrPrimary),
           ],
         ),
       ),
       itemBuilder: (context) => [
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'newest',
           child: Row(
             children: [
-              Icon(Icons.schedule_rounded, size: 16, color: Color(0xFF64748B)),
-              SizedBox(width: 10),
-              Text('Newest First', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              Icon(Icons.schedule_rounded, size: 16, color: itemIconColor),
+              const SizedBox(width: 10),
+              Text('Newest First', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: itemTextColor)),
             ],
           ),
         ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'oldest',
           child: Row(
             children: [
-              Icon(Icons.history_rounded, size: 16, color: Color(0xFF64748B)),
-              SizedBox(width: 10),
-              Text('Oldest First', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              Icon(Icons.history_rounded, size: 16, color: itemIconColor),
+              const SizedBox(width: 10),
+              Text('Oldest First', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: itemTextColor)),
             ],
           ),
         ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'price_asc',
           child: Row(
             children: [
-              Icon(Icons.arrow_upward_rounded, size: 16, color: Color(0xFF64748B)),
-              SizedBox(width: 10),
-              Text('Price: Low to High', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              Icon(Icons.arrow_upward_rounded, size: 16, color: itemIconColor),
+              const SizedBox(width: 10),
+              Text('Price: Low to High', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: itemTextColor)),
             ],
           ),
         ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'price_desc',
           child: Row(
             children: [
-              Icon(Icons.arrow_downward_rounded, size: 16, color: Color(0xFF64748B)),
-              SizedBox(width: 10),
-              Text('Price: High to Low', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              Icon(Icons.arrow_downward_rounded, size: 16, color: itemIconColor),
+              const SizedBox(width: 10),
+              Text('Price: High to Low', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: itemTextColor)),
             ],
           ),
         ),
@@ -388,6 +404,14 @@ class _ArtisanCatalogueScreenState extends ConsumerState<ArtisanCatalogueScreen>
 
   Widget _buildFilterPill(String label) {
     final isSelected = _selectedFilter == label;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final selectedBg = isDark ? AppColors.accent : AppColors.primary;
+    final selectedText = isDark ? AppColors.darkBackground : Colors.white;
+    final unselectedBg = isDark ? AppColors.darkSurface : Colors.white;
+    final unselectedBorder = isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0);
+    final unselectedText = isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B);
+
     return InkWell(
       onTap: () => setState(() => _selectedFilter = label),
       borderRadius: BorderRadius.circular(20),
@@ -395,10 +419,10 @@ class _ArtisanCatalogueScreenState extends ConsumerState<ArtisanCatalogueScreen>
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : Colors.white,
+          color: isSelected ? selectedBg : unselectedBg,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? AppColors.primary : const Color(0xFFE2E8F0),
+            color: isSelected ? selectedBg : unselectedBorder,
           ),
         ),
         child: Text(
@@ -406,7 +430,7 @@ class _ArtisanCatalogueScreenState extends ConsumerState<ArtisanCatalogueScreen>
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: isSelected ? Colors.white : const Color(0xFF64748B),
+            color: isSelected ? selectedText : unselectedText,
           ),
         ),
       ),
@@ -466,7 +490,23 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
     if (oldWidget.status != widget.status) _status = widget.status;
   }
 
-  Color _getStatusTextColor(String status) {
+  Color _getStatusTextColor(String status, bool isDark) {
+    if (isDark) {
+      switch (status.toLowerCase()) {
+        case 'active':
+          return const Color(0xFF4ADE80);
+        case 'sold out':
+          return const Color(0xFFF87171);
+        case 'draft':
+          return const Color(0xFFFBBF24);
+        case 'pending review':
+          return const Color(0xFF60A5FA);
+        case 'archived':
+          return const Color(0xFF94A3B8);
+        default:
+          return const Color(0xFF94A3B8);
+      }
+    }
     switch (status.toLowerCase()) {
       case 'active':
         return const Color(0xFF047857);
@@ -483,7 +523,10 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
     }
   }
 
-  Color _getStatusBgColor(String status) {
+  Color _getStatusBgColor(String status, bool isDark) {
+    if (isDark) {
+      return _getStatusTextColor(status, true).withValues(alpha: 0.18);
+    }
     switch (status.toLowerCase()) {
       case 'active':
         return const Color(0xFFD1FAE5);
@@ -502,10 +545,13 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
 
   void _showProductQrModal(BuildContext context) {
     final productId = widget.id ?? 'p1';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     showDialog(
       context: context,
       builder: (dialogContext) {
         return Dialog(
+          backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           child: Padding(
             padding: const EdgeInsets.all(22),
@@ -515,16 +561,16 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Product QR Code',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.primary,
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close_rounded),
+                      icon: Icon(Icons.close_rounded, color: isDark ? AppColors.darkTextSecondary : null),
                       onPressed: () => Navigator.pop(dialogContext),
                       splashRadius: 20,
                     ),
@@ -533,10 +579,10 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
                 const SizedBox(height: 10),
                 Text(
                   _titleEn,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF334155),
+                    color: isDark ? AppColors.darkTextPrimary : const Color(0xFF334155),
                   ),
                   textAlign: TextAlign.center,
                   maxLines: 2,
@@ -545,10 +591,10 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
                 const SizedBox(height: 4),
                 Text(
                   '₹$_price • Authenticated Artisan Craft',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
+                    color: isDark ? AppColors.accent : AppColors.primary,
                   ),
                 ),
                 const SizedBox(height: 18),
@@ -557,7 +603,7 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    border: Border.all(color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0)),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.04),
@@ -570,26 +616,26 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
                     future: ref.read(apiClientProvider).getProductQr(productId),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const SizedBox(
+                        return SizedBox(
                           width: 190,
                           height: 190,
                           child: Center(
-                            child: CircularProgressIndicator(color: AppColors.primary),
+                            child: CircularProgressIndicator(color: isDark ? AppColors.accent : AppColors.primary),
                           ),
                         );
                       }
                       if (snapshot.hasError || !snapshot.hasData) {
-                        return const SizedBox(
+                        return SizedBox(
                           width: 190,
                           height: 190,
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.qr_code_rounded, size: 56, color: Color(0xFF94A3B8)),
-                              SizedBox(height: 8),
+                              Icon(Icons.qr_code_rounded, size: 56, color: isDark ? AppColors.darkTextSecondary : const Color(0xFF94A3B8)),
+                              const SizedBox(height: 8),
                               Text(
                                 'Could not load QR code',
-                                style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                                style: TextStyle(fontSize: 12, color: isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B)),
                                 textAlign: TextAlign.center,
                               ),
                             ],
@@ -609,9 +655,9 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
                   ),
                 ),
                 const SizedBox(height: 14),
-                const Text(
+                Text(
                   'Scan to view authentic artisan catalog listing on KalaSetu.',
-                  style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                  style: TextStyle(fontSize: 11, color: isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B)),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
@@ -627,8 +673,8 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
                     icon: const Icon(Icons.share_outlined, size: 18),
                     label: const Text('Share Listing'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
+                      backgroundColor: isDark ? AppColors.accent : AppColors.primary,
+                      foregroundColor: isDark ? AppColors.darkBackground : Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -670,13 +716,21 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? AppColors.darkSurface : Colors.white;
+    final borderColor = isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0);
+    final titleColor = isDark ? AppColors.darkTextPrimary : AppColors.primary;
+    final subtitleColor = isDark ? AppColors.darkTextSecondary : const Color(0xFF8A94A6);
+    final accentOrPrimary = isDark ? AppColors.accent : AppColors.primary;
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: const [
-          BoxShadow(color: Color(0x06000000), blurRadius: 10, offset: Offset(0, 3)),
+        border: Border.all(color: borderColor),
+        boxShadow: [
+          if (!isDark)
+            const BoxShadow(color: Color(0x06000000), blurRadius: 10, offset: Offset(0, 3)),
         ],
       ),
       child: Column(
@@ -707,10 +761,10 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
                     Expanded(
                       child: Text(
                         _titleEn,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
-                          color: AppColors.primary,
+                          color: titleColor,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -721,15 +775,17 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFD1FAE5),
+                          color: isDark
+                              ? const Color(0xFF15803D).withValues(alpha: 0.2)
+                              : const Color(0xFFD1FAE5),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Text(
+                        child: Text(
                           'GI',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFF047857),
+                            color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF047857),
                           ),
                         ),
                       ),
@@ -739,10 +795,10 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
                 const SizedBox(height: 2),
                 Text(
                   _titleHi,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF8A94A6),
+                    color: subtitleColor,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -753,16 +809,16 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
                   children: [
                     Text(
                       '₹$_price',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.primary,
+                        color: accentOrPrimary,
                       ),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                       decoration: BoxDecoration(
-                        color: _getStatusBgColor(_status),
+                        color: _getStatusBgColor(_status, isDark),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
@@ -770,7 +826,7 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: _getStatusTextColor(_status),
+                          color: _getStatusTextColor(_status, isDark),
                         ),
                       ),
                     ),
@@ -782,18 +838,19 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Stock',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF64748B),
+                        color: isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B),
                       ),
                     ),
                     Row(
                       children: [
                         _buildStepperBtn(
                           icon: Icons.remove,
+                          isDark: isDark,
                           onTap: () async {
                             if (_stock > 0) {
                               setState(() => _stock--);
@@ -810,15 +867,16 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
                           padding: const EdgeInsets.symmetric(horizontal: 14),
                           child: Text(
                             '$_stock',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
-                              color: AppColors.primary,
+                              color: titleColor,
                             ),
                           ),
                         ),
                         _buildStepperBtn(
                           icon: Icons.add,
+                          isDark: isDark,
                           onTap: () async {
                             setState(() => _stock++);
                             if (widget.id != null && !widget.id!.startsWith('p')) {
@@ -844,8 +902,8 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
                         icon: const Icon(Icons.edit_outlined, size: 16),
                         label: const Text('Edit Product'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.primary,
-                          side: const BorderSide(color: AppColors.primary, width: 1.2),
+                          foregroundColor: accentOrPrimary,
+                          side: BorderSide(color: accentOrPrimary, width: 1.2),
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -861,11 +919,12 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
                         width: 48,
                         height: 44,
                         decoration: BoxDecoration(
+                          color: isDark ? AppColors.darkSurfaceVariant : Colors.transparent,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFCBD5E1)),
+                          border: Border.all(color: isDark ? AppColors.darkBorder : const Color(0xFFCBD5E1)),
                         ),
-                        child: const Center(
-                          child: Icon(Icons.qr_code_2_rounded, color: AppColors.primary, size: 24),
+                        child: Center(
+                          child: Icon(Icons.qr_code_2_rounded, color: accentOrPrimary, size: 24),
                         ),
                       ),
                     ),
@@ -879,7 +938,7 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
     );
   }
 
-  Widget _buildStepperBtn({required IconData icon, required VoidCallback onTap}) {
+  Widget _buildStepperBtn({required IconData icon, required VoidCallback onTap, required bool isDark}) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
@@ -887,11 +946,11 @@ class _CatalogueCardState extends ConsumerState<_CatalogueCard> {
         width: 32,
         height: 32,
         decoration: BoxDecoration(
-          color: const Color(0xFFF1F5F9),
+          color: isDark ? AppColors.darkSurfaceVariant : const Color(0xFFF1F5F9),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Center(
-          child: Icon(icon, size: 16, color: AppColors.primary),
+          child: Icon(icon, size: 16, color: isDark ? AppColors.accent : AppColors.primary),
         ),
       ),
     );
@@ -1005,6 +1064,10 @@ class _EditProductSheetState extends ConsumerState<_EditProductSheet> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accentOrPrimary = isDark ? AppColors.accent : AppColors.primary;
+    final titleColor = isDark ? AppColors.darkTextPrimary : AppColors.primary;
+
     return Container(
       padding: EdgeInsets.only(
         left: 20,
@@ -1013,7 +1076,7 @@ class _EditProductSheetState extends ConsumerState<_EditProductSheet> {
         bottom: 20 + bottomInset,
       ),
       decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
+        color: isDark ? AppColors.darkSurface : Theme.of(context).scaffoldBackgroundColor,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SingleChildScrollView(
@@ -1026,7 +1089,7 @@ class _EditProductSheetState extends ConsumerState<_EditProductSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade400,
+                  color: isDark ? AppColors.darkBorder : Colors.grey.shade400,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -1035,22 +1098,22 @@ class _EditProductSheetState extends ConsumerState<_EditProductSheet> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Row(
+                Row(
                   children: [
-                    Icon(Icons.edit_note_rounded, color: AppColors.primary, size: 24),
-                    SizedBox(width: 8),
+                    Icon(Icons.edit_note_rounded, color: accentOrPrimary, size: 24),
+                    const SizedBox(width: 8),
                     Text(
                       'Edit Product',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.primary,
+                        color: titleColor,
                       ),
                     ),
                   ],
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close_rounded, size: 24),
+                  icon: Icon(Icons.close_rounded, size: 24, color: isDark ? AppColors.darkTextSecondary : null),
                   onPressed: () => Navigator.of(context).pop(),
                   tooltip: 'Close',
                   padding: EdgeInsets.zero,
@@ -1063,7 +1126,7 @@ class _EditProductSheetState extends ConsumerState<_EditProductSheet> {
               controller: _titleEnController,
               decoration: InputDecoration(
                 labelText: 'Title (English) *',
-                prefixIcon: const Icon(Icons.title_rounded, color: AppColors.primary),
+                prefixIcon: Icon(Icons.title_rounded, color: accentOrPrimary),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               ),
@@ -1073,7 +1136,7 @@ class _EditProductSheetState extends ConsumerState<_EditProductSheet> {
               controller: _titleHiController,
               decoration: InputDecoration(
                 labelText: 'Title (Hindi)',
-                prefixIcon: const Icon(Icons.translate_rounded, color: AppColors.primary),
+                prefixIcon: Icon(Icons.translate_rounded, color: accentOrPrimary),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               ),
@@ -1087,7 +1150,7 @@ class _EditProductSheetState extends ConsumerState<_EditProductSheet> {
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
                       labelText: 'Price (₹) *',
-                      prefixIcon: const Icon(Icons.currency_rupee_rounded, color: AppColors.primary),
+                      prefixIcon: Icon(Icons.currency_rupee_rounded, color: accentOrPrimary),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     ),
@@ -1100,7 +1163,7 @@ class _EditProductSheetState extends ConsumerState<_EditProductSheet> {
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
                       labelText: 'Stock Units',
-                      prefixIcon: const Icon(Icons.inventory_2_outlined, color: AppColors.primary),
+                      prefixIcon: Icon(Icons.inventory_2_outlined, color: accentOrPrimary),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     ),
@@ -1111,9 +1174,10 @@ class _EditProductSheetState extends ConsumerState<_EditProductSheet> {
             const SizedBox(height: 14),
             DropdownButtonFormField<String>(
               initialValue: _status,
+              dropdownColor: isDark ? AppColors.darkSurface : Colors.white,
               decoration: InputDecoration(
                 labelText: 'Listing Status',
-                prefixIcon: const Icon(Icons.check_circle_outline, color: AppColors.primary),
+                prefixIcon: Icon(Icons.check_circle_outline, color: accentOrPrimary),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               ),
@@ -1134,16 +1198,16 @@ class _EditProductSheetState extends ConsumerState<_EditProductSheet> {
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _saveProduct,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
+                  backgroundColor: isDark ? AppColors.accent : AppColors.primary,
+                  foregroundColor: isDark ? AppColors.darkBackground : Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   elevation: 0,
                 ),
                 child: _isLoading
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 22,
                         height: 22,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        child: CircularProgressIndicator(color: isDark ? AppColors.darkBackground : Colors.white, strokeWidth: 2),
                       )
                     : const Text(
                         'Save Product Changes',

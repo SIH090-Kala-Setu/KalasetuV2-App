@@ -69,12 +69,12 @@ class ArtisanInquiriesScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'B2B Inquiries',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.primary,
+                  color: AppColors.textPrimary(context),
                   letterSpacing: -0.5,
                 ),
               ),
@@ -156,7 +156,7 @@ class ArtisanInquiriesScreen extends ConsumerWidget {
                         },
                       );
                     },
-                    loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+                    loading: () => Center(child: CircularProgressIndicator(color: AppColors.adaptivePrimary(context))),
                     error: (err, stack) => ListView.separated(
                       physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
                       padding: const EdgeInsets.only(bottom: 24),
@@ -201,6 +201,13 @@ class ArtisanInquiriesScreen extends ConsumerWidget {
     String status = 'Pending',
     String? responseMessage,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final sheetBg = isDark ? AppColors.darkSurface : Colors.white;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.primary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B);
+    final cardBg = isDark ? AppColors.darkBackground : const Color(0xFFF8FAFC);
+    final cardBorder = isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0);
+
     final s = status.toLowerCase();
     final isAccepted = s.contains('accept') || s.contains('complet') || s.contains('final');
     final isDeclined = s.contains('decline') || s.contains('denied') || s.contains('reject');
@@ -209,7 +216,7 @@ class ArtisanInquiriesScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: sheetBg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -230,7 +237,7 @@ class ArtisanInquiriesScreen extends ConsumerWidget {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: 0.3),
+                  color: isDark ? AppColors.darkBorder : Colors.grey.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -241,11 +248,11 @@ class ArtisanInquiriesScreen extends ConsumerWidget {
                 Expanded(
                   child: Text(
                     buyer,
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.primary),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: textPrimary),
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close),
+                  icon: Icon(Icons.close, color: textSecondary),
                   onPressed: () => Navigator.pop(ctx),
                 ),
               ],
@@ -255,13 +262,13 @@ class ArtisanInquiriesScreen extends ConsumerWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
+                color: cardBg,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: cardBorder),
               ),
               child: Text(
                 desc.trim(),
-                style: const TextStyle(fontSize: 14, color: Color(0xFF334155), height: 1.4),
+                style: TextStyle(fontSize: 14, color: textSecondary, height: 1.4),
               ),
             ),
             const SizedBox(height: 18),
@@ -272,23 +279,23 @@ class ArtisanInquiriesScreen extends ConsumerWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0FDF4),
+                  color: isDark ? const Color(0xFF15803D).withValues(alpha: 0.15) : const Color(0xFFF0FDF4),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFF86EFAC)),
+                  border: Border.all(color: isDark ? const Color(0xFF15803D) : const Color(0xFF86EFAC)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Row(
+                    Row(
                       children: [
-                        Icon(Icons.check_circle_rounded, color: Color(0xFF15803D), size: 22),
-                        SizedBox(width: 8),
+                        Icon(Icons.check_circle_rounded, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D), size: 22),
+                        const SizedBox(width: 8),
                         Text(
                           'Inquiry Accepted',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFF15803D),
+                            color: isDark ? const Color(0xFF86EFAC) : const Color(0xFF15803D),
                           ),
                         ),
                       ],
@@ -298,7 +305,7 @@ class ArtisanInquiriesScreen extends ConsumerWidget {
                       responseMessage != null && responseMessage.isNotEmpty
                           ? 'Response: $responseMessage'
                           : 'You accepted this inquiry! Order preparation is underway.',
-                      style: const TextStyle(fontSize: 13, color: Color(0xFF166534)),
+                      style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFFBBF7D0) : const Color(0xFF166534)),
                     ),
                   ],
                 ),
@@ -310,9 +317,10 @@ class ArtisanInquiriesScreen extends ConsumerWidget {
                   onPressed: () => Navigator.pop(ctx),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
+                    side: BorderSide(color: cardBorder),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('Close'),
+                  child: Text('Close', style: TextStyle(color: textPrimary)),
                 ),
               ),
             ] else if (isDeclined) ...[
@@ -320,23 +328,23 @@ class ArtisanInquiriesScreen extends ConsumerWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFEF2F2),
+                  color: isDark ? const Color(0xFFB91C1C).withValues(alpha: 0.15) : const Color(0xFFFEF2F2),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFFFCA5A5)),
+                  border: Border.all(color: isDark ? const Color(0xFF991B1B) : const Color(0xFFFCA5A5)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Row(
+                    Row(
                       children: [
-                        Icon(Icons.cancel_rounded, color: Color(0xFFDC2626), size: 22),
-                        SizedBox(width: 8),
+                        Icon(Icons.cancel_rounded, color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626), size: 22),
+                        const SizedBox(width: 8),
                         Text(
                           'Inquiry Declined',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFFDC2626),
+                            color: isDark ? const Color(0xFFFCA5A5) : const Color(0xFFDC2626),
                           ),
                         ),
                       ],
@@ -346,7 +354,7 @@ class ArtisanInquiriesScreen extends ConsumerWidget {
                       responseMessage != null && responseMessage.isNotEmpty
                           ? 'Response: $responseMessage'
                           : 'You declined this inquiry.',
-                      style: const TextStyle(fontSize: 13, color: Color(0xFF991B1B)),
+                      style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFFFECACA) : const Color(0xFF991B1B)),
                     ),
                   ],
                 ),
@@ -358,9 +366,10 @@ class ArtisanInquiriesScreen extends ConsumerWidget {
                   onPressed: () => Navigator.pop(ctx),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
+                    side: BorderSide(color: cardBorder),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('Close'),
+                  child: Text('Close', style: TextStyle(color: textPrimary)),
                 ),
               ),
             ] else if (isResponded) ...[
@@ -368,23 +377,23 @@ class ArtisanInquiriesScreen extends ConsumerWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEFF6FF),
+                  color: isDark ? const Color(0xFF1D4ED8).withValues(alpha: 0.15) : const Color(0xFFEFF6FF),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFF93C5FD)),
+                  border: Border.all(color: isDark ? const Color(0xFF1D4ED8) : const Color(0xFF93C5FD)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Row(
+                    Row(
                       children: [
-                        Icon(Icons.chat_bubble_outline_rounded, color: Color(0xFF1D4ED8), size: 22),
-                        SizedBox(width: 8),
+                        Icon(Icons.chat_bubble_outline_rounded, color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8), size: 22),
+                        const SizedBox(width: 8),
                         Text(
                           'Responded to Buyer',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFF1D4ED8),
+                            color: isDark ? const Color(0xFF93C5FD) : const Color(0xFF1D4ED8),
                           ),
                         ),
                       ],
@@ -392,7 +401,7 @@ class ArtisanInquiriesScreen extends ConsumerWidget {
                     const SizedBox(height: 8),
                     Text(
                       responseMessage ?? 'Your response was sent to the buyer.',
-                      style: const TextStyle(fontSize: 13, color: Color(0xFF1E40AF)),
+                      style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFFBFDBFE) : const Color(0xFF1E40AF)),
                     ),
                   ],
                 ),
@@ -404,9 +413,10 @@ class ArtisanInquiriesScreen extends ConsumerWidget {
                   onPressed: () => Navigator.pop(ctx),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
+                    side: BorderSide(color: cardBorder),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('Close'),
+                  child: Text('Close', style: TextStyle(color: textPrimary)),
                 ),
               ),
             ] else ...[
@@ -434,8 +444,8 @@ class ArtisanInquiriesScreen extends ConsumerWidget {
                         }
                       },
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFFDC2626),
-                        side: const BorderSide(color: Color(0xFFDC2626)),
+                        foregroundColor: const Color(0xFFEF4444),
+                        side: const BorderSide(color: Color(0xFFEF4444)),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
@@ -464,7 +474,7 @@ class ArtisanInquiriesScreen extends ConsumerWidget {
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF15803D),
+                        backgroundColor: const Color(0xFF16A34A),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -503,17 +513,27 @@ class _InquiryListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? AppColors.darkSurface : Colors.white;
+    final borderColor = isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0);
+    final iconBoxBg = isDark ? AppColors.darkSurfaceVariant : const Color(0xFFF1F5F9);
+    final iconColor = isDark ? AppColors.accent : const Color(0xFF64748B);
+    final titleColor = isDark ? AppColors.darkTextPrimary : AppColors.primary;
+    final descColor = isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B);
+    final effectiveStatusBg = isDark ? statusColor.withValues(alpha: 0.2) : statusBg;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: cardBg,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-          boxShadow: const [
-            BoxShadow(color: Color(0x04000000), blurRadius: 8, offset: Offset(0, 2)),
+          border: Border.all(color: borderColor),
+          boxShadow: [
+            if (!isDark)
+              const BoxShadow(color: Color(0x04000000), blurRadius: 8, offset: Offset(0, 2)),
           ],
         ),
         child: Row(
@@ -523,11 +543,11 @@ class _InquiryListItem extends StatelessWidget {
               width: 46,
               height: 46,
               decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
+                color: iconBoxBg,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Center(
-                child: Icon(Icons.chat_bubble_outline_rounded, color: Color(0xFF64748B), size: 22),
+              child: Center(
+                child: Icon(Icons.chat_bubble_outline_rounded, color: iconColor, size: 22),
               ),
             ),
             const SizedBox(width: 14),
@@ -539,19 +559,23 @@ class _InquiryListItem extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Text(
-                        buyer,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.primary,
+                      Expanded(
+                        child: Text(
+                          buyer,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: titleColor,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: statusBg,
+                          color: effectiveStatusBg,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -568,10 +592,10 @@ class _InquiryListItem extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     description,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF64748B),
+                      color: descColor,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -579,17 +603,17 @@ class _InquiryListItem extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     time,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF94A3B8),
+                      color: descColor,
                     ),
                   ),
                 ],
               ),
             ),
 
-            const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8), size: 22),
+            Icon(Icons.chevron_right_rounded, color: isDark ? AppColors.darkTextSecondary : const Color(0xFF94A3B8), size: 22),
           ],
         ),
       ),

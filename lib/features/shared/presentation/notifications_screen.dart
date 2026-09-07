@@ -82,7 +82,7 @@ class _NotificationTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final (icon, color) = _getIconAndColor(notification.type);
+    final (icon, color) = _getIconAndColor(notification.type, isDark);
 
     return GestureDetector(
       onTap: onTap,
@@ -92,7 +92,7 @@ class _NotificationTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: notification.isRead
               ? (isDark ? AppColors.darkSurface : AppColors.lightSurface)
-              : color.withValues(alpha: 0.05),
+              : (isDark ? color.withValues(alpha: 0.12) : color.withValues(alpha: 0.05)),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: notification.isRead
@@ -138,11 +138,11 @@ class _NotificationTile extends StatelessWidget {
     );
   }
 
-  (IconData, Color) _getIconAndColor(String type) => switch (type) {
+  (IconData, Color) _getIconAndColor(String type, bool isDark) => switch (type) {
     'inquiry' => (Icons.mail_rounded, AppColors.info),
     'govt-scheme' || 'scheme' => (Icons.account_balance_rounded, AppColors.accent),
     'verification' => (Icons.verified_rounded, AppColors.success),
     'inventory' => (Icons.inventory_2_rounded, AppColors.warning),
-    _ => (Icons.notifications_rounded, AppColors.primary),
+    _ => (Icons.notifications_rounded, isDark ? AppColors.accent : AppColors.primary),
   };
 }

@@ -71,7 +71,7 @@ class _BuyerShellState extends ConsumerState<BuyerShell> {
           ),
           child: NavigationBar(
             backgroundColor: navBg,
-            indicatorColor: AppColors.primary.withValues(alpha: 0.15),
+            indicatorColor: (isDark ? AppColors.accent : AppColors.primary).withValues(alpha: 0.2),
             selectedIndex: widget.navigationShell.currentIndex,
             height: 64,
             onDestinationSelected: (i) => widget.navigationShell.goBranch(
@@ -81,17 +81,17 @@ class _BuyerShellState extends ConsumerState<BuyerShell> {
             destinations: [
               NavigationDestination(
                 icon: Icon(Icons.storefront_outlined, color: isDark ? AppColors.darkTextSecondary : const Color(0xFF8A94A6)),
-                selectedIcon: const Icon(Icons.storefront_rounded, color: AppColors.primary),
+                selectedIcon: Icon(Icons.storefront_rounded, color: isDark ? AppColors.accent : AppColors.primary),
                 label: 'Market',
               ),
               NavigationDestination(
                 icon: Icon(Icons.assignment_outlined, color: isDark ? AppColors.darkTextSecondary : const Color(0xFF8A94A6)),
-                selectedIcon: const Icon(Icons.assignment_rounded, color: AppColors.primary),
+                selectedIcon: Icon(Icons.assignment_rounded, color: isDark ? AppColors.accent : AppColors.primary),
                 label: 'Orders',
               ),
               NavigationDestination(
                 icon: Icon(Icons.person_outline_rounded, color: isDark ? AppColors.darkTextSecondary : const Color(0xFF8A94A6)),
-                selectedIcon: const Icon(Icons.person_rounded, color: AppColors.primary),
+                selectedIcon: Icon(Icons.person_rounded, color: isDark ? AppColors.accent : AppColors.primary),
                 label: 'Profile',
               ),
             ],

@@ -156,7 +156,7 @@ class AppButton extends StatelessWidget {
       height: height,
       child: OutlinedButton(
         onPressed: isLoading ? null : _handleTap,
-        child: _content(AppColors.primary),
+        child: _content(isDark ? AppColors.accent : AppColors.primary),
       ),
     );
   }

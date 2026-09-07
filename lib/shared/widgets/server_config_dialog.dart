@@ -87,13 +87,21 @@ class _ServerConfigDialogState extends ConsumerState<ServerConfigDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: const Row(
+      title: Row(
         children: [
-          Icon(Icons.dns_rounded, color: AppColors.primary),
-          SizedBox(width: 10),
-          Text('Server Settings', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+          Icon(Icons.dns_rounded, color: isDark ? AppColors.accent : AppColors.primary),
+          const SizedBox(width: 10),
+          Text(
+            'Server Settings',
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 18,
+              color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+            ),
+          ),
         ],
       ),
       content: SingleChildScrollView(
@@ -101,9 +109,9 @@ class _ServerConfigDialogState extends ConsumerState<ServerConfigDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Configure the FastAPI backend server URL for KalaSetu.',
-              style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+              style: TextStyle(fontSize: 13, color: isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B)),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -116,15 +124,22 @@ class _ServerConfigDialogState extends ConsumerState<ServerConfigDialog> {
               ),
             ),
             const SizedBox(height: 12),
-            const Text('Quick Presets:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+            Text(
+              'Quick Presets:',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+              ),
+            ),
             const SizedBox(height: 6),
             Wrap(
               spacing: 8,
               runSpacing: 6,
               children: [
-                _buildPresetChip('Android Emulator', 'http://10.0.2.2:8000'),
-                _buildPresetChip('Localhost', 'http://127.0.0.1:8000'),
-                _buildPresetChip('Port 8000', 'http://localhost:8000'),
+                _buildPresetChip('Android Emulator', 'http://10.0.2.2:8000', isDark),
+                _buildPresetChip('Localhost', 'http://127.0.0.1:8000', isDark),
+                _buildPresetChip('Port 8000', 'http://localhost:8000', isDark),
               ],
             ),
             if (_testResult != null) ...[
@@ -132,14 +147,16 @@ class _ServerConfigDialogState extends ConsumerState<ServerConfigDialog> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: _testSuccess == true ? const Color(0xFFD1FAE5) : const Color(0xFFFEE2E2),
+                  color: _testSuccess == true
+                      ? (isDark ? AppColors.success.withValues(alpha: 0.18) : const Color(0xFFD1FAE5))
+                      : (isDark ? AppColors.error.withValues(alpha: 0.18) : const Color(0xFFFEE2E2)),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       _testSuccess == true ? Icons.check_circle_rounded : Icons.error_outline_rounded,
-                      color: _testSuccess == true ? const Color(0xFF047857) : const Color(0xFFB91C1C),
+                      color: _testSuccess == true ? AppColors.success : const Color(0xFFB91C1C),
                       size: 20,
                     ),
                     const SizedBox(width: 8),
@@ -149,7 +166,7 @@ class _ServerConfigDialogState extends ConsumerState<ServerConfigDialog> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: _testSuccess == true ? const Color(0xFF047857) : const Color(0xFFB91C1C),
+                          color: _testSuccess == true ? AppColors.success : const Color(0xFFB91C1C),
                         ),
                       ),
                     ),
@@ -170,8 +187,8 @@ class _ServerConfigDialogState extends ConsumerState<ServerConfigDialog> {
         ElevatedButton(
           onPressed: _save,
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
+            backgroundColor: isDark ? AppColors.accent : AppColors.primary,
+            foregroundColor: isDark ? Colors.black87 : Colors.white,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
           child: const Text('Save & Apply'),
@@ -180,11 +197,21 @@ class _ServerConfigDialogState extends ConsumerState<ServerConfigDialog> {
     );
   }
 
-  Widget _buildPresetChip(String label, String url) {
+  Widget _buildPresetChip(String label, String url, bool isDark) {
     return ActionChip(
-      label: Text(label, style: const TextStyle(fontSize: 11)),
+      label: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+        ),
+      ),
       onPressed: () => setState(() => _urlCtrl.text = url),
-      backgroundColor: const Color(0xFFF1F5F9),
+      backgroundColor: isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant,
+      side: BorderSide(
+        color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+      ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     );
   }

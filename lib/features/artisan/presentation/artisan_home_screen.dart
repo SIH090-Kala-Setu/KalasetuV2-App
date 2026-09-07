@@ -67,20 +67,20 @@ class ArtisanHomeScreen extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFD1FAE5),
+                          color: isDark ? const Color(0xFF064E3B) : const Color(0xFFD1FAE5),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.shield_outlined, size: 14, color: Color(0xFF10B981)),
-                            SizedBox(width: 4),
+                            Icon(Icons.shield_outlined, size: 14, color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF10B981)),
+                            const SizedBox(width: 4),
                             Text(
                               'MoSJE Verified Artisan',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFF047857),
+                                color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF047857),
                               ),
                             ),
                           ],
@@ -246,7 +246,7 @@ class ArtisanHomeScreen extends ConsumerWidget {
                     child: _ActionTile(
                       title: 'My Catalogue',
                       icon: Icons.inventory_2_outlined,
-                      iconBg: const Color(0xFF1B2A4A),
+                      iconBg: isDark ? const Color(0xFF334155) : const Color(0xFF1B2A4A),
                       onTap: () => context.push(RouteNames.artisanCatalogue),
                     ),
                   ),
@@ -358,26 +358,26 @@ class ArtisanHomeScreen extends ConsumerWidget {
                     // Amber ribbon header
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFEF9EE),
-                        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF451A03).withValues(alpha: 0.5) : const Color(0xFFFEF9EE),
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
-                          Icon(Icons.workspace_premium_outlined, color: Color(0xFFD97706), size: 20),
-                          SizedBox(width: 8),
+                          const Icon(Icons.workspace_premium_outlined, color: Color(0xFFD97706), size: 20),
+                          const SizedBox(width: 8),
                           Text(
                             'Active Schemes for You',
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF92400E),
+                              color: isDark ? const Color(0xFFFDE68A) : const Color(0xFF92400E),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const Divider(height: 1, color: Color(0xFFFDE68A)),
+                    Divider(height: 1, color: isDark ? const Color(0xFF78350F) : const Color(0xFFFDE68A)),
 
                     _SchemeItem(
                       title: 'PM Vishwakarma Toolkit Incentive',
@@ -388,7 +388,7 @@ class ArtisanHomeScreen extends ConsumerWidget {
                         const SnackBar(content: Text('Applying for PM Vishwakarma Toolkit Incentive...')),
                       ),
                     ),
-                    const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                    Divider(height: 1, color: border),
 
                     _SchemeItem(
                       title: 'Mudra Loan Assistance',
@@ -661,14 +661,14 @@ class _SchemeItem extends StatelessWidget {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(Icons.access_time, size: 14, color: Color(0xFF92400E)),
+                    Icon(Icons.access_time, size: 14, color: isDark ? const Color(0xFFFDE68A) : const Color(0xFF92400E)),
                     const SizedBox(width: 4),
                     Text(
                       'Deadline: $deadline',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF92400E),
+                        color: isDark ? const Color(0xFFFDE68A) : const Color(0xFF92400E),
                       ),
                     ),
                   ],
@@ -680,8 +680,8 @@ class _SchemeItem extends StatelessWidget {
           ElevatedButton(
             onPressed: onApply,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFF5A623),
-              foregroundColor: Colors.white,
+              backgroundColor: isDark ? AppColors.accent : const Color(0xFFF5A623),
+              foregroundColor: isDark ? AppColors.primary : Colors.white,
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               minimumSize: const Size(0, 38),

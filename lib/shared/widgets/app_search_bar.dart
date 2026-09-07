@@ -85,7 +85,9 @@ class _AppSearchBarState extends State<AppSearchBar> {
           Expanded(
             child: TextField(
               controller: _controller,
-              style: AppTextStyles.bodyMedium,
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+              ),
               decoration: InputDecoration(
                 hintText: widget.hint,
                 hintStyle: AppTextStyles.bodyMedium.copyWith(
@@ -119,7 +121,7 @@ class _AppSearchBarState extends State<AppSearchBar> {
             IconButton(
               icon: const Icon(Icons.tune_rounded, size: 20),
               onPressed: widget.onFilterTap,
-              color: AppColors.primary,
+              color: isDark ? AppColors.accent : AppColors.primary,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
             ),

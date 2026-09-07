@@ -98,9 +98,12 @@ class _ArtisansListScreenState extends ConsumerState<ArtisansListScreen> {
     final phoneCtrl = TextEditingController();
     final craftCtrl = TextEditingController();
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => Padding(
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(ctx).viewInsets.bottom,
@@ -110,7 +113,7 @@ class _ArtisansListScreenState extends ConsumerState<ArtisansListScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.lightBorder, borderRadius: BorderRadius.circular(2)))),
+            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: isDark ? AppColors.darkBorder : AppColors.lightBorder, borderRadius: BorderRadius.circular(2)))),
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -205,7 +208,7 @@ class _ArtisanListTile extends StatelessWidget {
                 if (artisan.isVerified) const Icon(Icons.verified_rounded, color: AppColors.success, size: 16),
               ]),
               if (artisan.craftType != null) Text(artisan.craftType!, style: AppTextStyles.bodySmall),
-              if (artisan.district != null) Text(artisan.district!, style: AppTextStyles.caption.copyWith(color: AppColors.lightTextSecondary)),
+              if (artisan.district != null) Text(artisan.district!, style: AppTextStyles.caption.copyWith(color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary)),
             ]),
           ),
           StatusBadge(status: artisan.kycStatus == 'verified' ? BadgeStatus.verified : BadgeStatus.pending),

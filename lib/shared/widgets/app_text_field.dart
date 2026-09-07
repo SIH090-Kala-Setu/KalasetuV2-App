@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 
 /// Reusable text field — floating label, clear button, validation, theme-adaptive
@@ -116,7 +117,7 @@ class _AppTextFieldState extends State<AppTextField> {
       onTap: widget.onTap,
       onFieldSubmitted: widget.onSubmitted,
       validator: widget.validator,
-      style: AppTextStyles.bodyMedium,
+      style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimary(context)),
       decoration: InputDecoration(
         labelText: widget.label,
         hintText: widget.hint,
