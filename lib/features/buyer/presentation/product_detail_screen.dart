@@ -12,6 +12,7 @@ import '../../../shared/widgets/product_reviews_section.dart';
 import '../../../shared/widgets/app_avatar.dart';
 import '../../../shared/widgets/shimmer_loader.dart';
 import '../../artisan/presentation/artisan_catalogue_screen.dart';
+import 'ar_room_preview_screen.dart';
 import 'buyer_marketplace_screen.dart';
 
 final productDetailProvider = FutureProvider.autoDispose.family<ProductModel, String>((ref, id) async {
@@ -143,7 +144,14 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const ShimmerLoader(width: double.infinity, height: 220, borderRadius: 18),
+              const AspectRatio(
+                aspectRatio: 1.0,
+                child: ShimmerLoader(
+                  width: double.infinity,
+                  height: double.infinity,
+                  borderRadius: 18,
+                ),
+              ),
               const SizedBox(height: 16),
               const ShimmerLoader(width: double.infinity, height: 22, borderRadius: 6),
               const SizedBox(height: 8),
@@ -255,17 +263,127 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Full Hero Image ────────────────────────────────────
+                  // ── Full Hero Image (1:1 square, no crop) ─────────────
                   ClipRRect(
                     borderRadius: BorderRadius.circular(18),
-                    child: ProductThumbnail(
-                      imageUrl: imageUrl,
-                      width: double.infinity,
-                      height: 220,
-                      fit: BoxFit.cover,
-                      borderRadius: BorderRadius.zero,
+                    child: AspectRatio(
+                      aspectRatio: 1.0,
+                      child: Container(
+                        color: isDark
+                            ? AppColors.darkSurfaceVariant
+                            : const Color(0xFFF8F6F2),
+                        child: ProductThumbnail(
+                          imageUrl: imageUrl,
+                          width: double.infinity,
+                          height: double.infinity,
+                          fit: BoxFit.contain,
+                          borderRadius: BorderRadius.zero,
+                        ),
+                      ),
                     ),
                   ),
+                  const SizedBox(height: 10),
+
+                  // ── Try in Your Room Button (Buyer only) ───────────────
+                  if (!isArtisan && imageUrl.isNotEmpty)
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => ArRoomPreviewScreen(
+                              imageUrl: imageUrl,
+                              productTitle: title,
+                              estimatedSize: product?.complexity != null
+                                  ? '~${_estimateSize(product!.complexity!)} cm'
+                                  : null,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 10, horizontal: 16),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              isDark
+                                  ? AppColors.primary.withValues(alpha: 0.9)
+                                  : const Color(0xFF1B2A4A),
+                              isDark
+                                  ? const Color(0xFF2E4057)
+                                  : const Color(0xFF243148),
+                            ],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.25),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.view_in_ar_rounded,
+                                color: AppColors.accent, size: 22),
+                            const SizedBox(width: 10),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text(
+                                  'Try in Your Room',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.2,
+                                  ),
+                                ),
+                                Text(
+                                  'AR Preview — see it before you buy',
+                                  style: TextStyle(
+                                    color:
+                                        Colors.white.withValues(alpha: 0.6),
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color:
+                                    AppColors.accent.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                    color: AppColors.accent
+                                        .withValues(alpha: 0.4)),
+                              ),
+                              child: const Text(
+                                'AR',
+                                style: TextStyle(
+                                  color: AppColors.accent,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(Icons.arrow_forward_ios_rounded,
+                                color: Colors.white54, size: 14),
+                          ],
+                        ),
+                      ),
+                    ),
+
                   const SizedBox(height: 16),
 
                   // ── Title + GI Tag ─────────────────────────────────────
@@ -779,6 +897,23 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
         ],
       ),
     );
+  }
+
+  /// Rough real-world size estimate based on craft complexity tier.
+  String _estimateSize(String complexity) {
+    switch (complexity.toLowerCase()) {
+      case 'small':
+        return '15 × 20';
+      case 'medium':
+        return '30 × 40';
+      case 'large':
+        return '50 × 70';
+      case 'extra large':
+      case 'xl':
+        return '80 × 100';
+      default:
+        return '35 × 45';
+    }
   }
 
   Widget _buildLangBtn(String label, bool isDark) {

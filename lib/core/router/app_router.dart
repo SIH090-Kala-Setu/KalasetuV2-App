@@ -26,6 +26,7 @@ import '../../features/buyer/presentation/buyer_marketplace_screen.dart';
 import '../../features/buyer/presentation/product_detail_screen.dart';
 import '../../features/buyer/presentation/my_inquiries_screen.dart';
 import '../../features/buyer/presentation/buyer_profile_screen.dart';
+import '../../features/buyer/presentation/ar_room_preview_screen.dart';
 import '../../features/portfolio/presentation/artisan_portfolio_screen.dart';
 import '../../features/shared/presentation/notifications_screen.dart';
 import 'route_names.dart';
@@ -230,6 +231,19 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
 
+      // ── AR Room Preview (outside shell — full screen camera) ──
+      GoRoute(
+        path: RouteNames.arRoomPreview,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>? ?? {};
+          return ArRoomPreviewScreen(
+            imageUrl: extra['imageUrl'] as String? ?? '',
+            productTitle: extra['productTitle'] as String? ?? 'Artisan Product',
+            estimatedSize: extra['estimatedSize'] as String?,
+          );
+        },
+      ),
+
       // ── Portfolio (public, no auth required) ─────────────────
       GoRoute(
         path: '/portfolio/:artisanId',
@@ -238,6 +252,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           return ArtisanPortfolioScreen(artisanId: artisanId);
         },
       ),
+
 
       // ── Notifications ────────────────────────────────────────
       GoRoute(

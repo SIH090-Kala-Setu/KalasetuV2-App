@@ -34,6 +34,9 @@ class RouteNames {
   static const String buyerInquiries = '/buyer/inquiries';
   static const String buyerProfile = '/buyer/profile';
 
+  // ── AR Room Preview ───────────────────────────────────────────
+  static const String arRoomPreview = '/buyer/ar-preview/:productId';
+
   // ── Portfolio ─────────────────────────────────────────────────
   static const String portfolio = '/portfolio/:artisanId';
 
@@ -45,4 +48,6 @@ class RouteNames {
       '/buyer/product/$productId';
   static String artisanPortfolio(String artisanId) =>
       '/portfolio/$artisanId';
+  static String arPreview(String productId) =>
+      '/buyer/ar-preview/$productId';
 }
